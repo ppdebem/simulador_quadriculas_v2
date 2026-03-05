@@ -203,11 +203,50 @@
       transition: transform 0.15s;
     }
     .toggle input:checked + .toggle-track::after { transform: translateX(14px); }
+
+    /* ── Rectangle selection rubber band ───────────────────────────────── */
+    #rect-band {
+      position: absolute;
+      border: 2px dashed rgba(30, 140, 255, 0.9);
+      background: rgba(30, 140, 255, 0.08);
+      pointer-events: none;
+      display: none;
+      z-index: 50;
+    }
+
+    /* ── Selection mode sub-toggle ─────────────────────────────────────── */
+    #sel-mode {
+      display: none;
+      margin-top: -5px;
+      margin-bottom: 7px;
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    #sel-mode.visible { display: flex; }
+    .mode-btn {
+      flex: 1;
+      padding: 5px 0;
+      background: transparent;
+      border: none;
+      font-family: inherit;
+      font-size: 9px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #7a90a0;
+      cursor: pointer;
+      transition: background 0.1s, color 0.1s;
+    }
+    .mode-btn.active {
+      background: rgba(30,120,220,0.12);
+      color: #1060cc;
+    }
   </style>
 </head>
 <body>
 
 <div id="map"></div>
+<div id="rect-band"></div>
 
 <div id="panel">
   <div id="panel-title">Simulador de Quadrículas v2</div>
@@ -216,6 +255,11 @@
     <span class="indicator"></span>
     <span id="btn-select-label">Selecionar quadrículas</span>
   </button>
+
+  <div id="sel-mode">
+    <button class="mode-btn active" id="mode-click">Clique</button>
+    <button class="mode-btn"        id="mode-rect">Retângulo</button>
+  </div>
 
   <button class="btn" id="btn-merge" disabled>
     <span class="indicator"></span>
@@ -451,12 +495,36 @@ map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-lef
 map.addControl(new maplibregl.GlobeControl(), 'top-right');
 map.addControl(new maplibregl.FullscreenControl({container: document.querySelector('body')}), 'top-right');
 
+// Disable right-click pitch/roll, use it for panning instead
+map.dragRotate.disable();
+map.touchPitch.disable();
+
+map.getCanvas().addEventListener('contextmenu', (e) => e.preventDefault());
+
+let rightDrag = null;
+map.getCanvas().addEventListener('mousedown', (e) => {
+  if (e.button !== 2) return;
+  rightDrag = { x: e.clientX, y: e.clientY };
+});
+window.addEventListener('mousemove', (e) => {
+  if (!rightDrag) return;
+  map.panBy([rightDrag.x - e.clientX, rightDrag.y - e.clientY], { animate: false });
+  rightDrag = { x: e.clientX, y: e.clientY };
+});
+window.addEventListener('mouseup', (e) => {
+  if (e.button === 2) rightDrag = null;
+});
+
 // ──────────────────────────────────────────────────────────────────────────────
 // State
 // ──────────────────────────────────────────────────────────────────────────────
-let selecting   = false;
-const selected  = new Set();   // Set<cellId string>
+let selecting    = false;
+let rectMode     = false;   // false = click, true = rectangle
+const selected   = new Set();
 let hoveredNumId = null;
+
+// Rectangle drag state
+let rectStart    = null;   // { x, y } in pixels
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Map load
@@ -541,7 +609,7 @@ map.on('load', () => {
 
   // ── Pointer events ─────────────────────────────────────────────────────────
   map.on('mousemove', 'grid-hit', (e) => {
-    if (!selecting) return;
+    if (!selecting || rectMode) return;
     map.getCanvas().style.cursor = 'crosshair';
 
     if (e.features.length > 0) {
@@ -565,7 +633,7 @@ map.on('load', () => {
   });
 
   map.on('click', 'grid-hit', (e) => {
-    if (!selecting || !e.features.length) return;
+    if (!selecting || rectMode || !e.features.length) return;
     e.preventDefault();
 
     const cellId = e.features[0].properties.cellId;
@@ -581,6 +649,68 @@ map.on('load', () => {
   // ── Grid redraw on viewport change ─────────────────────────────────────────
   map.on('moveend', redrawGrid);
   map.on('zoomend', redrawGrid);
+
+  // ── Rectangle selection ────────────────────────────────────────────────────
+  const canvas  = map.getCanvas();
+  const band    = document.getElementById('rect-band');
+
+  canvas.addEventListener('mousedown', (e) => {
+    if (!selecting || !rectMode || e.button !== 0) return;
+    e.preventDefault();
+    map.dragPan.disable();
+    rectStart = { x: e.offsetX, y: e.offsetY };
+    band.style.cssText = `display:block; left:${e.offsetX}px; top:${e.offsetY}px; width:0; height:0;`;
+  });
+
+  canvas.addEventListener('mousemove', (e) => {
+    if (!rectStart) return;
+    const x = Math.min(e.offsetX, rectStart.x);
+    const y = Math.min(e.offsetY, rectStart.y);
+    const w = Math.abs(e.offsetX - rectStart.x);
+    const h = Math.abs(e.offsetY - rectStart.y);
+    band.style.left   = x + 'px';
+    band.style.top    = y + 'px';
+    band.style.width  = w + 'px';
+    band.style.height = h + 'px';
+  });
+
+  canvas.addEventListener('mouseup', (e) => {
+    if (!rectStart) return;
+    band.style.display = 'none';
+    map.dragPan.enable();
+
+    // Convert pixel corners to lng/lat
+    const sw = map.unproject([Math.min(e.offsetX, rectStart.x), Math.max(e.offsetY, rectStart.y)]);
+    const ne = map.unproject([Math.max(e.offsetX, rectStart.x), Math.min(e.offsetY, rectStart.y)]);
+    rectStart = null;
+
+    // Skip tiny accidental drags
+    if (Math.abs(ne.lng - sw.lng) < 0.00001 && Math.abs(ne.lat - sw.lat) < 0.00001) return;
+
+    // Find all current grid cells that fall within the rectangle
+    const zoom  = map.getZoom();
+    const level = getLevel(zoom);
+    const size  = level.arcsec / 3600;
+    const r     = (n) => Math.round(n * 1e8) / 1e8;
+
+    const liStart   = Math.floor(sw.lng / size);
+    const liEnd     = Math.ceil(ne.lng  / size);
+    const latiStart = Math.floor(sw.lat / size);
+    const latiEnd   = Math.ceil(ne.lat  / size);
+
+    for (let li = liStart; li < liEnd; li++) {
+      for (let lati = latiStart; lati < latiEnd; lati++) {
+        const lng = li * size;
+        const lat = lati * size;
+        if (lng + size > 180.001 || lng < -180.001) continue;
+        if (lat + size >  90.001 || lat <  -90.001) continue;
+        selected.add(makeCellId(li, lati, level.arcsec));
+      }
+    }
+
+    syncSelectedSource();
+    syncUI();
+  });
 
   redrawGrid();
 });
@@ -670,6 +800,7 @@ function mergeCells() {
   selecting = false;
   document.getElementById('btn-select').classList.remove('active');
   document.getElementById('btn-select-label').textContent = 'Selecionar quadrículas';
+  document.getElementById('sel-mode').classList.remove('visible');
   map.getCanvas().style.cursor = '';
   if (hoveredNumId !== null) {
     map.setFeatureState({ source: 'grid', id: hoveredNumId }, { hover: false });
@@ -695,21 +826,40 @@ document.getElementById('btn-select').addEventListener('click', () => {
   selecting = !selecting;
   const btn   = document.getElementById('btn-select');
   const label = document.getElementById('btn-select-label');
+  const modeBar = document.getElementById('sel-mode');
 
   if (selecting) {
     btn.classList.add('active');
     label.textContent = 'Parar seleção';
-    showToast('Clique nas quadrículas para selecionar');
+    modeBar.classList.add('visible');
+    showToast(rectMode ? 'Arraste para selecionar área' : 'Clique nas quadrículas para selecionar');
   } else {
     btn.classList.remove('active');
     label.textContent = 'Selecionar quadrículas';
+    modeBar.classList.remove('visible');
     map.getCanvas().style.cursor = '';
-    // Clear hover state
+    map.dragPan.enable();
+    document.getElementById('rect-band').style.display = 'none';
+    rectStart = null;
     if (hoveredNumId !== null) {
       map.setFeatureState({ source: 'grid', id: hoveredNumId }, { hover: false });
       hoveredNumId = null;
     }
   }
+});
+
+document.getElementById('mode-click').addEventListener('click', () => {
+  rectMode = false;
+  document.getElementById('mode-click').classList.add('active');
+  document.getElementById('mode-rect').classList.remove('active');
+  map.getCanvas().style.cursor = selecting ? 'crosshair' : '';
+});
+
+document.getElementById('mode-rect').addEventListener('click', () => {
+  rectMode = true;
+  document.getElementById('mode-rect').classList.add('active');
+  document.getElementById('mode-click').classList.remove('active');
+  map.getCanvas().style.cursor = selecting ? 'crosshair' : '';
 });
 
 document.getElementById('btn-merge').addEventListener('click', mergeCells);
