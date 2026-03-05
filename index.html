@@ -23,7 +23,7 @@
       position: absolute;
       top: 16px;
       left: 16px;
-      width: 230px;
+      width: 250px;
       background: rgba(255, 255, 255, 0.96);
       border: 1px solid rgba(0, 0, 0, 0.12);
       border-radius: 3px;
@@ -103,13 +103,13 @@
       padding: 3px 0;
     }
     .stat-label {
-      font-size: 9px;
+      font-size: 11px;
       letter-spacing: 1.5px;
       color: #7a90a0;
       text-transform: uppercase;
     }
     .stat-value {
-      font-size: 10px;
+      font-size: 12px;
       color: #2a6090;
       letter-spacing: 0.5px;
     }
@@ -140,6 +140,69 @@
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
+
+    /* ── Layer toggles ──────────────────────────────────────────────────── */
+    #layers {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(0,0,0,0.08);
+    }
+    #layers-title {
+      font-size: 9px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #7a90a0;
+      margin-bottom: 9px;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+    .toggle-label {
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: #2a4a6a;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 1px;
+      flex-shrink: 0;
+    }
+    /* Toggle switch */
+    .toggle {
+      position: relative;
+      width: 30px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.15);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .toggle input:checked + .toggle-track { background: #1a88ee; }
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      transition: transform 0.15s;
+    }
+    .toggle input:checked + .toggle-track::after { transform: translateX(14px); }
   </style>
 </head>
 <body>
@@ -147,22 +210,48 @@
 <div id="map"></div>
 
 <div id="panel">
-  <div id="panel-title">Grid Selector</div>
+  <div id="panel-title">Simulador de Quadrículas v2</div>
 
   <button class="btn" id="btn-select">
     <span class="indicator"></span>
-    <span id="btn-select-label">Start Selecting</span>
+    <span id="btn-select-label">Selecionar quadrículas</span>
   </button>
 
   <button class="btn" id="btn-merge" disabled>
     <span class="indicator"></span>
-    Merge Cells
+    Unir Seleção
   </button>
 
   <button class="btn" id="btn-clear" disabled>
     <span class="indicator"></span>
-    Clear
+    Limpar
   </button>
+
+  <div id="layers">
+    <div id="layers-title">Camadas</div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">
+        <span class="swatch" style="background:rgba(60,130,190,0.6);border:1px solid rgba(60,130,190,0.9)"></span>
+        Grid
+      </span>
+      <label class="toggle">
+        <input type="checkbox" id="tog-grid" checked>
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">
+        <span class="swatch" style="background:rgba(80,220,160,0.4);border:1px solid rgba(80,220,160,0.9)"></span>
+        Polígono gerado
+      </span>
+      <label class="toggle">
+        <input type="checkbox" id="tog-merged" checked>
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+  </div>
 
   <div id="stats">
     <div class="stat-row">
@@ -170,15 +259,15 @@
       <span class="stat-value" id="s-zoom">—</span>
     </div>
     <div class="stat-row">
-      <span class="stat-label">Grid</span>
+      <span class="stat-label">Quadrícula</span>
       <span class="stat-value" id="s-grid">—</span>
     </div>
     <div class="stat-row">
-      <span class="stat-label">Cells in view</span>
+      <span class="stat-label">Disponíveis</span>
       <span class="stat-value" id="s-cells">—</span>
     </div>
     <div class="stat-row">
-      <span class="stat-label">Selected</span>
+      <span class="stat-label">Selecionadas</span>
       <span class="stat-value highlight" id="s-selected">0</span>
     </div>
   </div>
@@ -230,16 +319,14 @@ function makeCellId(li, lati, arcsec) {
  * rebuild geometry without storing coordinates.
  */
 function cellIdToFeature(cellId) {
-  const parts = cellId.split('_');
-  // handle negative numbers: split gives ["-3780","1080","10"] or similar
-  // safer: parse as numbers directly
-  const [li, lati, arcsec] = parts.map(Number);
+  const [li, lati, arcsec] = cellId.split('_').map(Number);
   const size = arcsec / 3600;
-  const lng = li * size;
-  const lat = lati * size;
+  const r = (n) => Math.round(n * 1e8) / 1e8;
+  const x0 = r(li   * size),        y0 = r(lati   * size);
+  const x1 = r((li+1) * size),      y1 = r((lati+1) * size);
 
   return turf.polygon(
-    [[[lng, lat], [lng+size, lat], [lng+size, lat+size], [lng, lat+size], [lng, lat]]],
+    [[[x0,y0],[x1,y0],[x1,y1],[x0,y1],[x0,y0]]],
     { cellId }
   );
 }
@@ -276,19 +363,19 @@ function generateGrid(map, level) {
       if (lng + size > 180.001 || lng < -180.001) continue;
       if (lat + size >  90.001 || lat <  -90.001) continue;
 
+      // Round to 8 decimal places so adjacent cells share identical edge
+      // coordinates and turf.union can dissolve them without float-gap slivers
+      const r = (n) => Math.round(n * 1e8) / 1e8;
+      const x0 = r(lng),        y0 = r(lat);
+      const x1 = r(lng + size), y1 = r(lat + size);
+
       features.push({
         type: 'Feature',
         id: features.length,   // numeric id required for setFeatureState
         properties: { cellId: makeCellId(li, lati, arcsec) },
         geometry: {
           type: 'Polygon',
-          coordinates: [[
-            [lng,        lat       ],
-            [lng + size, lat       ],
-            [lng + size, lat + size],
-            [lng,        lat + size],
-            [lng,        lat       ],
-          ]]
+          coordinates: [[[x0,y0],[x1,y0],[x1,y1],[x0,y1],[x0,y0]]]
         }
       });
 
@@ -302,10 +389,28 @@ function generateGrid(map, level) {
 // ──────────────────────────────────────────────────────────────────────────────
 // Map
 // ──────────────────────────────────────────────────────────────────────────────
+const SATELLITE_STYLE = {
+  version: 8,
+  sources: {
+    esri: {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+      ],
+      tileSize: 256,
+      attribution: 'Tiles © Esri — Esri, DigitalGlobe, GeoEye, i-cubed, USDA FSA, USGS, AEX, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+      maxzoom: 19
+    }
+  },
+  layers: [
+    { id: 'esri-satellite', type: 'raster', source: 'esri' }
+  ]
+};
+
 const map = new maplibregl.Map({
   container: 'map',
-  style: 'https://tiles.openfreemap.org/styles/liberty',
-  center: [-43.17, -22.9],   // Rio de Janeiro as default
+  style: SATELLITE_STYLE,
+  center: [-43.17, -22.9],
   zoom: 8,
   attributionControl: false,
 });
@@ -541,6 +646,27 @@ document.getElementById('btn-clear').addEventListener('click', () => {
   syncSelectedSource();
   map.getSource('merged').setData(EMPTY_FC());
   syncUI();
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Layer toggles
+// ──────────────────────────────────────────────────────────────────────────────
+const GRID_LAYERS   = ['grid-hit', 'grid-lines', 'grid-hover', 'sel-fill', 'sel-outline'];
+const MERGED_LAYERS = ['merged-fill', 'merged-outline'];
+
+function setLayersVisibility(layerIds, visible) {
+  const v = visible ? 'visible' : 'none';
+  layerIds.forEach(id => {
+    if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', v);
+  });
+}
+
+document.getElementById('tog-grid').addEventListener('change', (e) => {
+  setLayersVisibility(GRID_LAYERS, e.target.checked);
+});
+
+document.getElementById('tog-merged').addEventListener('change', (e) => {
+  setLayersVisibility(MERGED_LAYERS, e.target.checked);
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
