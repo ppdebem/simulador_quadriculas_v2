@@ -243,6 +243,17 @@
 
     <div class="toggle-row">
       <span class="toggle-label">
+        <span class="swatch" style="background:rgba(180,180,180,0.5);border:1px solid rgba(120,120,120,0.9)"></span>
+        Rótulos
+      </span>
+      <label class="toggle">
+        <input type="checkbox" id="tog-labels" checked>
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">
         <span class="swatch" style="background:rgba(80,220,160,0.4);border:1px solid rgba(80,220,160,0.9)"></span>
         Polígono gerado
       </span>
@@ -263,12 +274,8 @@
       <span class="stat-value" id="s-grid">—</span>
     </div>
     <div class="stat-row">
-      <span class="stat-label">Disponíveis</span>
-      <span class="stat-value" id="s-cells">—</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Selecionadas</span>
-      <span class="stat-value highlight" id="s-selected">0</span>
+      <span class="stat-label">Área selecionada</span>
+      <span class="stat-value highlight" id="s-area">0 ha</span>
     </div>
   </div>
 </div>
@@ -395,15 +402,33 @@ const SATELLITE_STYLE = {
     esri: {
       type: 'raster',
       tiles: [
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       ],
       tileSize: 256,
-      attribution: 'Tiles © Esri — Esri, DigitalGlobe, GeoEye, i-cubed, USDA FSA, USGS, AEX, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+      attribution: 'Tiles © Esri — Esri, DigitalGlobe, GeoEye, USDA FSA, USGS',
+      maxzoom: 19
+    },
+    esri_labels: {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
+      ],
+      tileSize: 256,
+      attribution: 'Esri, HERE, Garmin, (c) OpenStreetMap contributors, and the GIS user community',
       maxzoom: 19
     }
   },
   layers: [
-    { id: 'esri-satellite', type: 'raster', source: 'esri' }
+    {
+      id: 'esri-satellite',
+      type: 'raster',
+      source: 'esri'
+    },
+    {
+      id: 'esri-boundaries',
+      type: 'raster',
+      source: 'esri_labels'
+    }
   ]
 };
 
@@ -563,12 +588,8 @@ function redrawGrid() {
 
   map.getSource('grid').setData(fc);
 
-  // Update stats
-  document.getElementById('s-zoom').textContent  = zoom.toFixed(1);
-  document.getElementById('s-grid').textContent  = level.label;
-  document.getElementById('s-cells').textContent = fc.features.length >= MAX_CELLS
-    ? `${MAX_CELLS}+ (limite)`
-    : fc.features.length;
+  document.getElementById('s-zoom').textContent = zoom.toFixed(1);
+  document.getElementById('s-grid').textContent = level.label;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -579,10 +600,24 @@ function syncSelectedSource() {
   map.getSource('sel-cells').setData({ type: 'FeatureCollection', features });
 }
 
+function calcSelectedAreaHa() {
+  if (selected.size === 0) return 0;
+  const features = [...selected].map(id => cellIdToFeature(id));
+  const fc = turf.featureCollection(features);
+  return turf.area(fc) / 10000;
+}
+
+function formatHa(ha) {
+  if (ha === 0) return '0 ha';
+  if (ha >= 10000) return `${(ha / 10000).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} Mha`;
+  if (ha >= 1000)  return `${ha.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} ha`;
+  return `${ha.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} ha`;
+}
+
 function syncUI() {
   const n = selected.size;
-  document.getElementById('s-selected').textContent = n;
   document.getElementById('btn-merge').disabled = n < 2;
+  document.getElementById('s-area').textContent = formatHa(calcSelectedAreaHa());
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -617,11 +652,15 @@ function mergeCells() {
   }
 
   console.log('[merged polygon GeoJSON]', JSON.stringify(merged, null, 2));
+  const areaLabel = formatHa(calcSelectedAreaHa());
   showToast(`${selected.size} quadrículas unidas → console`);
 
   selected.clear();
   syncSelectedSource();
   syncUI();
+
+  // Keep the area visible after merge — only cleared by the Limpar button
+  document.getElementById('s-area').textContent = areaLabel;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -655,6 +694,7 @@ document.getElementById('btn-clear').addEventListener('click', () => {
   syncSelectedSource();
   map.getSource('merged').setData(EMPTY_FC());
   syncUI();
+  document.getElementById('s-area').textContent = '0 ha';
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -672,6 +712,10 @@ function setLayersVisibility(layerIds, visible) {
 
 document.getElementById('tog-grid').addEventListener('change', (e) => {
   setLayersVisibility(GRID_LAYERS, e.target.checked);
+});
+
+document.getElementById('tog-labels').addEventListener('change', (e) => {
+  setLayersVisibility(['esri-boundaries'], e.target.checked);
 });
 
 document.getElementById('tog-merged').addEventListener('change', (e) => {
