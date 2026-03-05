@@ -219,7 +219,7 @@
 
   <button class="btn" id="btn-merge" disabled>
     <span class="indicator"></span>
-    Unir Seleção
+    Consolidar Seleção
   </button>
 
   <button class="btn" id="btn-clear">
@@ -641,7 +641,7 @@ function formatHa(ha) {
 
 function syncUI() {
   const n = selected.size;
-  document.getElementById('btn-merge').disabled = n < 2;
+  document.getElementById('btn-merge').disabled = n < 1;
   document.getElementById('s-area').textContent = formatHa(calcSelectedAreaHa());
 }
 
