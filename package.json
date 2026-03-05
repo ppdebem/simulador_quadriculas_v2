@@ -1,0 +1,14 @@
+{
+  "name": "grid-selector",
+  "version": "1.0.0",
+  "description": "Interactive graticule cell selector map",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "maplibre-gl": "^4.0.0",
+    "@turf/turf": "^7.0.0"
+  }
+}

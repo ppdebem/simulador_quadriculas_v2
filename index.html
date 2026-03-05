@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grid Selector</title>
+  <link href="/node_modules/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet">
+  <script src="/node_modules/maplibre-gl/dist/maplibre-gl.js"></script>
+  <script src="/node_modules/@turf/turf/turf.min.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+
+    body {
+      font-family: 'Courier New', 'Lucida Console', monospace;
+      background: #080c12;
+    }
+
+    #map { position: absolute; inset: 0; }
+
+    /* ── Panel ──────────────────────────────────────────────────────────── */
+    #panel {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      width: 230px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 3px;
+      padding: 16px;
+      z-index: 100;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    #panel-title {
+      font-size: 9px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #2a6090;
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+
+    /* ── Buttons ────────────────────────────────────────────────────────── */
+    .btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 8px 10px;
+      margin-bottom: 7px;
+      background: transparent;
+      border: 1px solid rgba(0,0,0,0.18);
+      border-radius: 2px;
+      color: #2a4a6a;
+      font-family: inherit;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+    }
+    .btn:hover:not(:disabled) {
+      background: rgba(40,110,180,0.08);
+      border-color: rgba(40,110,180,0.5);
+      color: #1a5a9a;
+    }
+    .btn.active {
+      background: rgba(30,100,200,0.1);
+      border-color: rgba(30,120,220,0.7);
+      color: #1060cc;
+    }
+    .btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    .btn .indicator {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.25);
+      flex-shrink: 0;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    .btn.active .indicator {
+      background: #1a88ee;
+      border-color: #1a88ee;
+      box-shadow: 0 0 6px rgba(20,130,240,0.6);
+    }
+
+    /* ── Stats ──────────────────────────────────────────────────────────── */
+    #stats {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(0,0,0,0.08);
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 3px 0;
+    }
+    .stat-label {
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      color: #7a90a0;
+      text-transform: uppercase;
+    }
+    .stat-value {
+      font-size: 10px;
+      color: #2a6090;
+      letter-spacing: 0.5px;
+    }
+    .stat-value.highlight { color: #1a8855; }
+
+    /* ── Toast ──────────────────────────────────────────────────────────── */
+    #toast {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: rgba(255,255,255,0.97);
+      border: 1px solid rgba(0,0,0,0.14);
+      color: #1a6040;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      letter-spacing: 1px;
+      padding: 8px 16px;
+      border-radius: 2px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      z-index: 200;
+      white-space: nowrap;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="panel">
+  <div id="panel-title">Grid Selector</div>
+
+  <button class="btn" id="btn-select">
+    <span class="indicator"></span>
+    <span id="btn-select-label">Start Selecting</span>
+  </button>
+
+  <button class="btn" id="btn-merge" disabled>
+    <span class="indicator"></span>
+    Merge Cells
+  </button>
+
+  <button class="btn" id="btn-clear" disabled>
+    <span class="indicator"></span>
+    Clear
+  </button>
+
+  <div id="stats">
+    <div class="stat-row">
+      <span class="stat-label">Zoom</span>
+      <span class="stat-value" id="s-zoom">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Grid</span>
+      <span class="stat-value" id="s-grid">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Cells in view</span>
+      <span class="stat-value" id="s-cells">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Selected</span>
+      <span class="stat-value highlight" id="s-selected">0</span>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ──────────────────────────────────────────────────────────────────────────────
+// Constants
+// ──────────────────────────────────────────────────────────────────────────────
+const EMPTY_FC = () => ({ type: 'FeatureCollection', features: [] });
+const MAX_CELLS = 5000;
+
+// Grid levels: order matters — first match wins (highest zoom first)
+const GRID_LEVELS = [
+  { minZoom: 16, arcsec: 1,     label: '1 segundo'  },
+  { minZoom: 15, arcsec: 5,     label: '5 segundos'  },
+  { minZoom: 12, arcsec: 10,     label: '10 segundos'  },
+  { minZoom: 10, arcsec: 60,    label: '1 minuto' },
+  { minZoom: 5,  arcsec: 600,   label: '10 minutos' },
+  { minZoom: 3,  arcsec: 3600,  label: '1°'  },
+  { minZoom: 0,  arcsec: 36000, label: '10°' },
+];
+
+function getLevel(zoom) {
+  for (const lvl of GRID_LEVELS) {
+    if (zoom >= lvl.minZoom) return lvl;
+  }
+  return GRID_LEVELS[GRID_LEVELS.length - 1];
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Build a cell ID from integer grid indices + arcsec size.
+ * Format: "li_lati_arcsec"
+ * Works with negative indices (negative lng/lat zones).
+ */
+function makeCellId(li, lati, arcsec) {
+  return `${li}_${lati}_${arcsec}`;
+}
+
+/**
+ * Reconstruct a GeoJSON polygon feature from a cell ID.
+ * This is the inverse of makeCellId, allowing us to
+ * rebuild geometry without storing coordinates.
+ */
+function cellIdToFeature(cellId) {
+  const parts = cellId.split('_');
+  // handle negative numbers: split gives ["-3780","1080","10"] or similar
+  // safer: parse as numbers directly
+  const [li, lati, arcsec] = parts.map(Number);
+  const size = arcsec / 3600;
+  const lng = li * size;
+  const lat = lati * size;
+
+  return turf.polygon(
+    [[[lng, lat], [lng+size, lat], [lng+size, lat+size], [lng, lat+size], [lng, lat]]],
+    { cellId }
+  );
+}
+
+/**
+ * Generate all grid cell polygon features visible in the current viewport.
+ * Each feature has a numeric `id` (for feature-state hover) and
+ * `cellId` string property (stable identifier across redraws).
+ */
+function generateGrid(map, level) {
+  const { arcsec } = level;
+  const size = arcsec / 3600;
+
+  const b = map.getBounds();
+  const west  = Math.max(b.getWest(),  -180);
+  const east  = Math.min(b.getEast(),   180);
+  const south = Math.max(b.getSouth(),  -90);
+  const north = Math.min(b.getNorth(),   90);
+
+  const liStart   = Math.floor(west  / size);
+  const liEnd     = Math.ceil(east   / size);
+  const latiStart = Math.floor(south / size);
+  const latiEnd   = Math.ceil(north  / size);
+
+  const features = [];
+
+  outer:
+  for (let li = liStart; li < liEnd; li++) {
+    for (let lati = latiStart; lati < latiEnd; lati++) {
+      const lng = li   * size;
+      const lat = lati * size;
+
+      // Safety clamps
+      if (lng + size > 180.001 || lng < -180.001) continue;
+      if (lat + size >  90.001 || lat <  -90.001) continue;
+
+      features.push({
+        type: 'Feature',
+        id: features.length,   // numeric id required for setFeatureState
+        properties: { cellId: makeCellId(li, lati, arcsec) },
+        geometry: {
+          type: 'Polygon',
+          coordinates: [[
+            [lng,        lat       ],
+            [lng + size, lat       ],
+            [lng + size, lat + size],
+            [lng,        lat + size],
+            [lng,        lat       ],
+          ]]
+        }
+      });
+
+      if (features.length >= MAX_CELLS) break outer;
+    }
+  }
+
+  return { type: 'FeatureCollection', features };
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Map
+// ──────────────────────────────────────────────────────────────────────────────
+const map = new maplibregl.Map({
+  container: 'map',
+  style: 'https://tiles.openfreemap.org/styles/liberty',
+  center: [-43.17, -22.9],   // Rio de Janeiro as default
+  zoom: 8,
+  attributionControl: false,
+});
+
+map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
+map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-right');
+map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+
+// ──────────────────────────────────────────────────────────────────────────────
+// State
+// ──────────────────────────────────────────────────────────────────────────────
+let selecting   = false;
+const selected  = new Set();   // Set<cellId string>
+let hoveredNumId = null;
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Map load
+// ──────────────────────────────────────────────────────────────────────────────
+map.on('load', () => {
+
+  // ── Sources ────────────────────────────────────────────────────────────────
+  map.addSource('grid',     { type: 'geojson', data: EMPTY_FC() });
+  map.addSource('sel-cells',{ type: 'geojson', data: EMPTY_FC() });
+  map.addSource('merged',   { type: 'geojson', data: EMPTY_FC() });
+
+  // ── Layers (back to front) ─────────────────────────────────────────────────
+
+  // Invisible fill to catch pointer events on cells
+  map.addLayer({
+    id: 'grid-hit',
+    type: 'fill',
+    source: 'grid',
+    paint: { 'fill-color': '#000', 'fill-opacity': 0.001 }
+  });
+
+  // Graticule lines
+  map.addLayer({
+    id: 'grid-lines',
+    type: 'line',
+    source: 'grid',
+    paint: {
+      'line-color': 'rgba(60, 130, 190, 0.4)',
+      'line-width': 0.6
+    }
+  });
+
+  // Hover highlight (uses feature-state)
+  map.addLayer({
+    id: 'grid-hover',
+    type: 'fill',
+    source: 'grid',
+    paint: {
+      'fill-color': 'rgba(80, 200, 255, 0.14)',
+      'fill-opacity': [
+        'case', ['boolean', ['feature-state', 'hover'], false], 1, 0
+      ]
+    }
+  });
+
+  // Selected cells fill
+  map.addLayer({
+    id: 'sel-fill',
+    type: 'fill',
+    source: 'sel-cells',
+    paint: {
+      'fill-color': 'rgba(60, 170, 240, 0.22)',
+    }
+  });
+  map.addLayer({
+    id: 'sel-outline',
+    type: 'line',
+    source: 'sel-cells',
+    paint: {
+      'line-color': 'rgba(60, 200, 255, 0.85)',
+      'line-width': 1.5
+    }
+  });
+
+  // Merged polygon fill + outline
+  map.addLayer({
+    id: 'merged-fill',
+    type: 'fill',
+    source: 'merged',
+    paint: { 'fill-color': 'rgba(80, 220, 160, 0.18)' }
+  });
+  map.addLayer({
+    id: 'merged-outline',
+    type: 'line',
+    source: 'merged',
+    paint: {
+      'line-color': 'rgba(80, 230, 170, 0.9)',
+      'line-width': 2.5,
+      'line-dasharray': [4, 2]
+    }
+  });
+
+  // ── Pointer events ─────────────────────────────────────────────────────────
+  map.on('mousemove', 'grid-hit', (e) => {
+    if (!selecting) return;
+    map.getCanvas().style.cursor = 'crosshair';
+
+    if (e.features.length > 0) {
+      const numId = e.features[0].id;
+      if (numId !== hoveredNumId) {
+        if (hoveredNumId !== null) {
+          map.setFeatureState({ source: 'grid', id: hoveredNumId }, { hover: false });
+        }
+        hoveredNumId = numId;
+        map.setFeatureState({ source: 'grid', id: hoveredNumId }, { hover: true });
+      }
+    }
+  });
+
+  map.on('mouseleave', 'grid-hit', () => {
+    map.getCanvas().style.cursor = '';
+    if (hoveredNumId !== null) {
+      map.setFeatureState({ source: 'grid', id: hoveredNumId }, { hover: false });
+      hoveredNumId = null;
+    }
+  });
+
+  map.on('click', 'grid-hit', (e) => {
+    if (!selecting || !e.features.length) return;
+    e.preventDefault();
+
+    const cellId = e.features[0].properties.cellId;
+    if (selected.has(cellId)) {
+      selected.delete(cellId);
+    } else {
+      selected.add(cellId);
+    }
+    syncSelectedSource();
+    syncUI();
+  });
+
+  // ── Grid redraw on viewport change ─────────────────────────────────────────
+  map.on('moveend', redrawGrid);
+  map.on('zoomend', redrawGrid);
+
+  redrawGrid();
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Grid redraw
+// ──────────────────────────────────────────────────────────────────────────────
+function redrawGrid() {
+  const zoom = map.getZoom();
+  const level = getLevel(zoom);
+  const fc = generateGrid(map, level);
+
+  map.getSource('grid').setData(fc);
+
+  // Update stats
+  document.getElementById('s-zoom').textContent  = zoom.toFixed(1);
+  document.getElementById('s-grid').textContent  = level.label;
+  document.getElementById('s-cells').textContent = fc.features.length >= MAX_CELLS
+    ? `${MAX_CELLS}+ (capped)`
+    : fc.features.length;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Selection sync
+// ──────────────────────────────────────────────────────────────────────────────
+function syncSelectedSource() {
+  const features = [...selected].map(id => cellIdToFeature(id));
+  map.getSource('sel-cells').setData({ type: 'FeatureCollection', features });
+}
+
+function syncUI() {
+  const n = selected.size;
+  document.getElementById('s-selected').textContent = n;
+  document.getElementById('btn-merge').disabled = n < 2;
+  document.getElementById('btn-clear').disabled = n === 0;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Merge
+// ──────────────────────────────────────────────────────────────────────────────
+function mergeCells() {
+  const features = [...selected].map(id => cellIdToFeature(id));
+  if (!features.length) return;
+
+  let merged;
+  try {
+    // turf v7+ API
+    merged = turf.union(turf.featureCollection(features));
+  } catch (_) {
+    // turf v6 fallback: union(poly, poly)
+    merged = features.reduce((acc, f) => turf.union(acc, f));
+  }
+
+  map.getSource('merged').setData({
+    type: 'FeatureCollection',
+    features: merged ? [merged] : []
+  });
+
+  console.log('[merged polygon GeoJSON]', JSON.stringify(merged, null, 2));
+  showToast(`Merged ${selected.size} cells → console`);
+
+  selected.clear();
+  syncSelectedSource();
+  syncUI();
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Button wiring
+// ──────────────────────────────────────────────────────────────────────────────
+document.getElementById('btn-select').addEventListener('click', () => {
+  selecting = !selecting;
+  const btn   = document.getElementById('btn-select');
+  const label = document.getElementById('btn-select-label');
+
+  if (selecting) {
+    btn.classList.add('active');
+    label.textContent = 'Stop Selecting';
+    showToast('Click cells to select');
+  } else {
+    btn.classList.remove('active');
+    label.textContent = 'Start Selecting';
+    map.getCanvas().style.cursor = '';
+    // Clear hover state
+    if (hoveredNumId !== null) {
+      map.setFeatureState({ source: 'grid', id: hoveredNumId }, { hover: false });
+      hoveredNumId = null;
+    }
+  }
+});
+
+document.getElementById('btn-merge').addEventListener('click', mergeCells);
+
+document.getElementById('btn-clear').addEventListener('click', () => {
+  selected.clear();
+  syncSelectedSource();
+  map.getSource('merged').setData(EMPTY_FC());
+  syncUI();
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Toast
+// ──────────────────────────────────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
