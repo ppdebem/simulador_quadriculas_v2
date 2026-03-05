@@ -118,14 +118,14 @@
     /* ── Toast ──────────────────────────────────────────────────────────── */
     #toast {
       position: absolute;
-      bottom: 40px;
+      top: 40px;
       left: 50%;
       transform: translateX(-50%) translateY(10px);
       background: rgba(255,255,255,0.97);
       border: 1px solid rgba(0,0,0,0.14);
       color: #1a6040;
       font-family: 'Courier New', monospace;
-      font-size: 10px;
+      font-size: 14px;
       letter-spacing: 1px;
       padding: 8px 16px;
       border-radius: 2px;
@@ -298,10 +298,10 @@ const GRID_LEVELS = [
   { minZoom: 16, arcsec: 1,     label: '1 segundo'  },
   { minZoom: 15, arcsec: 5,     label: '5 segundos'  },
   { minZoom: 13, arcsec: 10,     label: '10 segundos'  },
-  { minZoom: 10, arcsec: 60,    label: '1 minuto' },
+  { minZoom: 10.5, arcsec: 60,    label: '1 minuto' },
   { minZoom: 7,  arcsec: 600,   label: '10 minutos' },
   { minZoom: 6,  arcsec: 1800,   label: '30 minutos' },
-  { minZoom: 4,  arcsec: 3600,  label: '1°'  },
+  { minZoom: 5,  arcsec: 3600,  label: '1°'  },
   { minZoom: 0,  arcsec: 36000, label: '10°' },
 ];
 
@@ -591,7 +591,7 @@ map.on('load', () => {
 function redrawGrid() {
   const zoom = map.getZoom();
 
-  if (zoom < 7) {
+  if (zoom < 1) {
     map.getSource('grid').setData(EMPTY_FC());
     document.getElementById('s-zoom').textContent      = zoom.toFixed(1);
     document.getElementById('s-grid').textContent      = '—';
