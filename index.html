@@ -299,8 +299,9 @@ const GRID_LEVELS = [
   { minZoom: 15, arcsec: 5,     label: '5 segundos'  },
   { minZoom: 12, arcsec: 10,     label: '10 segundos'  },
   { minZoom: 10, arcsec: 60,    label: '1 minuto' },
-  { minZoom: 5,  arcsec: 600,   label: '10 minutos' },
-  { minZoom: 3,  arcsec: 3600,  label: '1°'  },
+  { minZoom: 7,  arcsec: 600,   label: '10 minutos' },
+  { minZoom: 6,  arcsec: 1800,   label: '30 minutos' },
+  { minZoom: 4,  arcsec: 3600,  label: '1°'  },
   { minZoom: 0,  arcsec: 36000, label: '10°' },
 ];
 
@@ -633,7 +634,7 @@ function calcSelectedAreaHa() {
 
 function formatHa(ha) {
   if (ha === 0) return '0 ha';
-  if (ha >= 10000) return `${(ha / 10000).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} Mha`;
+  if (ha >= 1000) return `${(ha / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil ha`;
   if (ha >= 1000)  return `${ha.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} ha`;
   return `${ha.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} ha`;
 }
