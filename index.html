@@ -222,7 +222,7 @@
     Unir Seleção
   </button>
 
-  <button class="btn" id="btn-clear" disabled>
+  <button class="btn" id="btn-clear">
     <span class="indicator"></span>
     Limpar
   </button>
@@ -583,7 +583,6 @@ function syncUI() {
   const n = selected.size;
   document.getElementById('s-selected').textContent = n;
   document.getElementById('btn-merge').disabled = n < 2;
-  document.getElementById('btn-clear').disabled = n === 0;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -606,6 +605,16 @@ function mergeCells() {
     type: 'FeatureCollection',
     features: merged ? [merged] : []
   });
+
+  // Exit selection mode
+  selecting = false;
+  document.getElementById('btn-select').classList.remove('active');
+  document.getElementById('btn-select-label').textContent = 'Selecionar quadrículas';
+  map.getCanvas().style.cursor = '';
+  if (hoveredNumId !== null) {
+    map.setFeatureState({ source: 'grid', id: hoveredNumId }, { hover: false });
+    hoveredNumId = null;
+  }
 
   console.log('[merged polygon GeoJSON]', JSON.stringify(merged, null, 2));
   showToast(`${selected.size} quadrículas unidas → console`);
