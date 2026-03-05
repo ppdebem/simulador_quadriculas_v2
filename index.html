@@ -274,6 +274,10 @@
       <span class="stat-value" id="s-grid">—</span>
     </div>
     <div class="stat-row">
+      <span class="stat-label">Área Quadrícula</span>
+      <span class="stat-value" id="s-cell-area">—</span>
+    </div>
+    <div class="stat-row">
       <span class="stat-label">Área selecionada</span>
       <span class="stat-value highlight" id="s-area">0 ha</span>
     </div>
@@ -583,13 +587,31 @@ map.on('load', () => {
 // ──────────────────────────────────────────────────────────────────────────────
 function redrawGrid() {
   const zoom = map.getZoom();
+
+  if (zoom < 7) {
+    map.getSource('grid').setData(EMPTY_FC());
+    document.getElementById('s-zoom').textContent      = zoom.toFixed(1);
+    document.getElementById('s-grid').textContent      = '—';
+    document.getElementById('s-cell-area').textContent = '—';
+    return;
+  }
   const level = getLevel(zoom);
   const fc = generateGrid(map, level);
 
   map.getSource('grid').setData(fc);
 
-  document.getElementById('s-zoom').textContent = zoom.toFixed(1);
-  document.getElementById('s-grid').textContent = level.label;
+  // Sample cell area at viewport center latitude (area varies with latitude)
+  const center = map.getCenter();
+  const size = level.arcsec / 3600;
+  const r = (n) => Math.round(n * 1e8) / 1e8;
+  const cx = r(Math.floor(center.lng / size) * size);
+  const cy = r(Math.floor(center.lat / size) * size);
+  const sampleCell = turf.polygon([[[cx,cy],[cx+size,cy],[cx+size,cy+size],[cx,cy+size],[cx,cy]]]);
+  const cellAreaHa = turf.area(sampleCell) / 10000;
+
+  document.getElementById('s-zoom').textContent      = zoom.toFixed(1);
+  document.getElementById('s-grid').textContent      = level.label;
+  document.getElementById('s-cell-area').textContent = formatHa(cellAreaHa);
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
