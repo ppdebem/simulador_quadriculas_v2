@@ -23,7 +23,7 @@
       position: absolute;
       top: 16px;
       left: 16px;
-      width: 250px;
+      width: 300px;
       background: rgba(255, 255, 255, 0.96);
       border: 1px solid rgba(0, 0, 0, 0.12);
       border-radius: 3px;
@@ -277,6 +277,54 @@
       flex-shrink: 0;
     }
 
+    /* ── Confirmation modal ─────────────────────────────────────────────── */
+    #modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 300;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    #modal-overlay.show { display: flex; }
+    #modal {
+      background: #fff;
+      border-radius: 3px;
+      padding: 22px 24px 18px;
+      max-width: 320px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+      font-family: 'Courier New', monospace;
+    }
+    #modal-msg {
+      font-size: 12px;
+      line-height: 1.6;
+      color: #2a3a4a;
+      margin-bottom: 18px;
+    }
+    #modal-msg strong { color: #c03030; }
+    #modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .modal-btn {
+      padding: 7px 18px;
+      border-radius: 2px;
+      font-family: inherit;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: 1px solid rgba(0,0,0,0.18);
+      transition: background 0.1s;
+    }
+    #modal-no  { background: transparent; color: #555; }
+    #modal-no:hover  { background: rgba(0,0,0,0.06); }
+    #modal-yes { background: rgba(200,40,40,0.1); color: #b02020; border-color: rgba(200,40,40,0.4); }
+    #modal-yes:hover { background: rgba(200,40,40,0.2); }
+
     /* ── Rectangle selection rubber band ───────────────────────────────── */
     #rect-band {
       position: absolute;
@@ -290,8 +338,8 @@
     /* ── Selection mode sub-toggle ─────────────────────────────────────── */
     #sel-mode {
       display: none;
-      margin-top: 6px;
-      margin-bottom: 2px;
+      margin-top: -5px;
+      margin-bottom: 6px;
       border: 1px solid rgba(0,0,0,0.1);
       border-radius: 2px;
       overflow: hidden;
@@ -455,6 +503,16 @@
       <!-- populated dynamically after dados.geojson loads -->
     </div>
 
+  </div>
+</div>
+
+<div id="modal-overlay">
+  <div id="modal">
+    <div id="modal-msg"></div>
+    <div id="modal-actions">
+      <button class="modal-btn" id="modal-no">Não</button>
+      <button class="modal-btn" id="modal-yes">Sim</button>
+    </div>
   </div>
 </div>
 
@@ -1122,8 +1180,8 @@ function mergeCells() {
     }
 
     // Update restriction stats
-    document.getElementById('s-total').textContent   = total.size   > 0 ? `${total.size} quad.`   : '—';
-    document.getElementById('s-parcial').textContent = parcial.size > 0 ? `${parcial.size} quad.` : '—';
+    document.getElementById('s-total').textContent   = total.size   > 0 ? `${total.size} quadr.`   : '—';
+    document.getElementById('s-parcial').textContent = parcial.size > 0 ? `${parcial.size} quadr.` : '—';
     document.getElementById('s-area-clean').textContent = mergedClean
       ? formatHa(turf.area(mergedClean) / 10000) : '—';
 
@@ -1185,7 +1243,42 @@ document.getElementById('mode-rect').addEventListener('click', () => {
   map.getCanvas().style.cursor = selecting ? 'crosshair' : '';
 });
 
-document.getElementById('btn-merge').addEventListener('click', mergeCells);
+// ──────────────────────────────────────────────────────────────────────────────
+// Confirmation modal
+// ──────────────────────────────────────────────────────────────────────────────
+const AREA_WARNING_HA = 1000;
+
+function showModal(msg, onConfirm) {
+  document.getElementById('modal-msg').innerHTML = msg;
+  document.getElementById('modal-overlay').classList.add('show');
+
+  const yes = document.getElementById('modal-yes');
+  const no  = document.getElementById('modal-no');
+
+  const close = () => {
+    document.getElementById('modal-overlay').classList.remove('show');
+    yes.removeEventListener('click', onYes);
+    no.removeEventListener('click',  onNo);
+  };
+  const onYes = () => { close(); onConfirm(); };
+  const onNo  = () => close();
+
+  yes.addEventListener('click', onYes);
+  no.addEventListener('click',  onNo);
+}
+
+document.getElementById('btn-merge').addEventListener('click', () => {
+  const checkRestricoes = document.getElementById('tog-check-restricoes').checked;
+  const ha = calcSelectedAreaHa();
+  if (checkRestricoes && ha > AREA_WARNING_HA) {
+    showModal(
+      `Você selecionou uma área muito grande e o processamento pode demorar (<strong>${formatHa(ha)}</strong>). Tem certeza que quer prosseguir?`,
+      mergeCells
+    );
+  } else {
+    mergeCells();
+  }
+});
 
 document.getElementById('btn-clear').addEventListener('click', () => {
   selected.clear();
