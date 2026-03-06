@@ -204,6 +204,79 @@
     }
     .toggle input:checked + .toggle-track::after { transform: translateX(14px); }
 
+    /* ── Legend panel ───────────────────────────────────────────────────── */
+    #legend {
+      position: absolute;
+      top: 16px;
+      right: 52px;
+      width: 220px;
+      background: rgba(255,255,255,0.96);
+      border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 3px;
+      z-index: 100;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      overflow: hidden;
+    }
+    #legend-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    #legend-title {
+      font-size: 9px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #2a6090;
+    }
+    #legend-toggle-icon {
+      font-size: 10px;
+      color: #7a90a0;
+      transition: transform 0.2s;
+    }
+    #legend-toggle-icon.collapsed { transform: rotate(-90deg); }
+    #legend-body {
+      padding: 10px 14px 12px;
+    }
+    #legend-body.hidden { display: none; }
+    .legend-section-title {
+      font-size: 8px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #7a90a0;
+      margin: 10px 0 6px;
+    }
+    .legend-section-title:first-child { margin-top: 2px; }
+    .legend-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 3px 0;
+    }
+    .legend-label {
+      font-size: 10px;
+      letter-spacing: 0.8px;
+      color: #2a4a6a;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      text-transform: uppercase;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .legend-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
     /* ── Rectangle selection rubber band ───────────────────────────────── */
     #rect-band {
       position: absolute;
@@ -271,41 +344,12 @@
     Limpar
   </button>
 
-  <div id="layers">
-    <div id="layers-title">Camadas</div>
-
-    <div class="toggle-row">
-      <span class="toggle-label">
-        <span class="swatch" style="background:rgba(60,130,190,0.6);border:1px solid rgba(60,130,190,0.9)"></span>
-        Grid
-      </span>
-      <label class="toggle">
-        <input type="checkbox" id="tog-grid" checked>
-        <span class="toggle-track"></span>
-      </label>
-    </div>
-
-    <div class="toggle-row">
-      <span class="toggle-label">
-        <span class="swatch" style="background:rgba(180,180,180,0.5);border:1px solid rgba(120,120,120,0.9)"></span>
-        Rótulos
-      </span>
-      <label class="toggle">
-        <input type="checkbox" id="tog-labels" checked>
-        <span class="toggle-track"></span>
-      </label>
-    </div>
-
-    <div class="toggle-row">
-      <span class="toggle-label">
-        <span class="swatch" style="background:rgba(0, 255, 238, 0.52);border:1px solid rgba(0, 189, 176, 0.9)"></span>
-        Polígono gerado
-      </span>
-      <label class="toggle">
-        <input type="checkbox" id="tog-merged" checked>
-        <span class="toggle-track"></span>
-      </label>
-    </div>
+  <div class="toggle-row" style="margin-top:8px; padding: 0 2px;">
+    <span class="stat-label">Verificar restrições</span>
+    <label class="toggle">
+      <input type="checkbox" id="tog-check-restricoes" checked>
+      <span class="toggle-track"></span>
+    </label>
   </div>
 
   <div id="stats">
@@ -325,6 +369,92 @@
       <span class="stat-label">Área selecionada</span>
       <span class="stat-value highlight" id="s-area">0 ha</span>
     </div>
+    <div class="stat-row">
+      <span class="stat-label">Área livre</span>
+      <span class="stat-value highlight" id="s-area-clean">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label" style="color:#e05050">Restrição total</span>
+      <span class="stat-value" id="s-total">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label" style="color:#d07020">Restrição parcial</span>
+      <span class="stat-value" id="s-parcial">—</span>
+    </div>
+  </div>
+</div>
+
+<div id="legend">
+  <div id="legend-header">
+    <span id="legend-title">Legenda / Camadas</span>
+    <span id="legend-toggle-icon">▾</span>
+  </div>
+  <div id="legend-body">
+
+    <div class="legend-section-title">Camadas base</div>
+
+    <div class="legend-row">
+      <span class="legend-label">
+        <span class="legend-swatch" style="background:rgba(60,130,190,0.55);border:1px solid rgba(60,130,190,0.9)"></span>
+        Grid
+      </span>
+      <label class="toggle">
+        <input type="checkbox" id="tog-grid" checked>
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+
+    <div class="legend-row">
+      <span class="legend-label">
+        <span class="legend-swatch" style="background:rgba(180,180,180,0.5);border:1px solid rgba(120,120,120,0.9)"></span>
+        Rótulos
+      </span>
+      <label class="toggle">
+        <input type="checkbox" id="tog-labels" checked>
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+
+    <div class="legend-row">
+      <span class="legend-label">
+        <span class="legend-swatch" style="background:rgba(0,255,238,0.35);border:1px solid rgba(0,200,190,0.9)"></span>
+        Polígono gerado
+      </span>
+      <label class="toggle">
+        <input type="checkbox" id="tog-merged" checked>
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+
+    <div class="legend-section-title">Restrições</div>
+
+    <div class="legend-row">
+      <span class="legend-label">
+        <span class="legend-swatch" style="background:rgba(220,50,50,0.35);border:2px solid rgba(220,50,50,0.9)"></span>
+        Restrição total
+      </span>
+      <label class="toggle">
+        <input type="checkbox" id="tog-restricao-total" checked>
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+
+    <div class="legend-row">
+      <span class="legend-label">
+        <span class="legend-swatch" style="background:rgba(240,150,30,0.35);border:2px solid rgba(240,150,30,0.9)"></span>
+        Restrição parcial
+      </span>
+      <label class="toggle">
+        <input type="checkbox" id="tog-restricao-parcial" checked>
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+
+    <div class="legend-section-title">Dados — tipo</div>
+    <div id="legend-tipos">
+      <!-- populated dynamically after dados.geojson loads -->
+    </div>
+
   </div>
 </div>
 
@@ -519,12 +649,21 @@ window.addEventListener('mouseup', (e) => {
 // State
 // ──────────────────────────────────────────────────────────────────────────────
 let selecting    = false;
-let rectMode     = false;   // false = click, true = rectangle
+let rectMode     = false;
 const selected   = new Set();
 let hoveredNumId = null;
+let rectStart    = null;
 
-// Rectangle drag state
-let rectStart    = null;   // { x, y } in pixels
+// Restriction data loaded from dados.geojson
+let restrictionData = null;
+
+// Color palette for tipos (assigned dynamically)
+const TIPO_PALETTE = [
+  '#e6194b','#3cb44b','#ffe119','#4363d8','#f58231',
+  '#911eb4','#42d4f4','#f032e6','#bfef45','#fabed4',
+  '#469990','#dcbeff','#9A6324','#fffac8','#800000',
+];
+const tipoColors = {};
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Map load
@@ -606,6 +745,73 @@ map.on('load', () => {
       'line-dasharray': [4, 2]
     }
   });
+
+  // ── Dados / restriction sources & layers ───────────────────────────────────
+  map.addSource('dados',            { type: 'geojson', data: EMPTY_FC() });
+  map.addSource('restricao-total',  { type: 'geojson', data: EMPTY_FC() });
+  map.addSource('restricao-parcial',{ type: 'geojson', data: EMPTY_FC() });
+
+  // Dados fill (colored by tipo via feature property, set after load)
+  map.addLayer({
+    id: 'dados-fill',
+    type: 'fill',
+    source: 'dados',
+    paint: { 'fill-color': ['get', '_color'], 'fill-opacity': 0.35 }
+  });
+  map.addLayer({
+    id: 'dados-outline',
+    type: 'line',
+    source: 'dados',
+    paint: { 'line-color': ['get', '_color'], 'line-width': 1.2, 'line-opacity': 0.8 }
+  });
+
+  // Restrição total result (red)
+  map.addLayer({
+    id: 'restricao-total-fill',
+    type: 'fill',
+    source: 'restricao-total',
+    paint: { 'fill-color': 'rgba(220,50,50,0.25)' }
+  });
+  map.addLayer({
+    id: 'restricao-total-outline',
+    type: 'line',
+    source: 'restricao-total',
+    paint: { 'line-color': 'rgba(220,50,50,0.95)', 'line-width': 2, 'line-dasharray': [4,2] }
+  });
+
+  // Restrição parcial result (orange)
+  map.addLayer({
+    id: 'restricao-parcial-fill',
+    type: 'fill',
+    source: 'restricao-parcial',
+    paint: { 'fill-color': 'rgba(240,150,30,0.25)' }
+  });
+  map.addLayer({
+    id: 'restricao-parcial-outline',
+    type: 'line',
+    source: 'restricao-parcial',
+    paint: { 'line-color': 'rgba(240,150,30,0.95)', 'line-width': 2, 'line-dasharray': [4,2] }
+  });
+
+  // Load dados.geojson
+  fetch('data/dados.geojson')
+    .then(r => r.json())
+    .then(data => {
+      // Assign a color to each unique tipo
+      let paletteIdx = 0;
+      data.features.forEach(f => {
+        const tipo = f.properties.tipo;
+        if (tipo && !tipoColors[tipo]) {
+          tipoColors[tipo] = TIPO_PALETTE[paletteIdx % TIPO_PALETTE.length];
+          paletteIdx++;
+        }
+        f.properties._color = tipoColors[tipo] || '#aaaaaa';
+      });
+      restrictionData = data;
+      map.getSource('dados').setData(data);
+      buildLegendTipos();
+    })
+    .catch(err => console.warn('Não foi possível carregar dados.geojson:', err));
 
   // ── Pointer events ─────────────────────────────────────────────────────────
   map.on('mousemove', 'grid-hit', (e) => {
@@ -776,47 +982,163 @@ function syncUI() {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// Intersection check helpers
+// ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Expand a selected cell (any arcsec size) into 1-arcsecond sub-cells.
+ * Returns an array of cellId strings at 1" resolution.
+ */
+function expandTo1arcsec(cellId) {
+  const [li, lati, arcsec] = cellId.split('_').map(Number);
+  if (arcsec === 1) return [cellId];
+  const ids = [];
+  for (let di = 0; di < arcsec; di++) {
+    for (let dlat = 0; dlat < arcsec; dlat++) {
+      ids.push(makeCellId(li * arcsec + di, lati * arcsec + dlat, 1));
+    }
+  }
+  return ids;
+}
+
+/**
+ * Tag 1-arcsecond cells against restriction features.
+ * Returns { clean: Set, parcial: Set, total: Set } of original (selected) cellIds.
+ * "total" takes precedence over "parcial".
+ */
+function classifyCells() {
+  const clean   = new Set();
+  const parcial = new Set();
+  const total   = new Set();
+
+  // Expand every selected cell (at any resolution) to 1" sub-cells
+  const allSubCells = [];
+  for (const cellId of selected) {
+    expandTo1arcsec(cellId).forEach(id => allSubCells.push(id));
+  }
+
+  if (!restrictionData || !restrictionData.features.length) {
+    allSubCells.forEach(id => clean.add(id));
+    return { clean, parcial, total };
+  }
+
+  const restrictionFeatures = restrictionData.features.map(f => ({
+    feature: f,
+    bbox: turf.bbox(f),
+    restricao: (f.properties.restricao || '').toLowerCase()
+  }));
+
+  const s = 1 / 3600;
+  const r = (n) => Math.round(n * 1e8) / 1e8;
+
+  for (const subId of allSubCells) {
+    const [sli, slati] = subId.split('_').map(Number);
+    const sx0 = r(sli * s),       sy0 = r(slati * s);
+    const sx1 = r((sli + 1) * s), sy1 = r((slati + 1) * s);
+
+    // Bbox pre-filter — skip expensive intersect if no overlap possible
+    const candidates = restrictionFeatures.filter(({ bbox }) =>
+      sx0 < bbox[2] && sx1 > bbox[0] && sy0 < bbox[3] && sy1 > bbox[1]
+    );
+
+    if (!candidates.length) { clean.add(subId); continue; }
+
+    const subPoly = turf.polygon([[[sx0,sy0],[sx1,sy0],[sx1,sy1],[sx0,sy1],[sx0,sy0]]]);
+    let tag = null;
+
+    for (const { feature, restricao } of candidates) {
+      if (turf.booleanIntersects(subPoly, feature)) {
+        if (restricao === 'total') { tag = 'total'; break; } // total wins immediately
+        tag = 'parcial'; // keep going — a later candidate might be total
+      }
+    }
+
+    if      (tag === 'total')   total.add(subId);
+    else if (tag === 'parcial') parcial.add(subId);
+    else                        clean.add(subId);
+  }
+
+  return { clean, parcial, total };
+}
+
+function unionGroup(cellIds) {
+  if (!cellIds.size) return null;
+  const features = [...cellIds].map(id => cellIdToFeature(id));
+  try {
+    return turf.union(turf.featureCollection(features));
+  } catch (_) {
+    return features.reduce((acc, f) => turf.union(acc, f));
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // Merge
 // ──────────────────────────────────────────────────────────────────────────────
 function mergeCells() {
-  const features = [...selected].map(id => cellIdToFeature(id));
-  if (!features.length) return;
+  if (!selected.size) return;
 
-  let merged;
-  try {
-    // turf v7+ API
-    merged = turf.union(turf.featureCollection(features));
-  } catch (_) {
-    // turf v6 fallback: union(poly, poly)
-    merged = features.reduce((acc, f) => turf.union(acc, f));
-  }
+  showToast('Processando…');
 
-  map.getSource('merged').setData({
-    type: 'FeatureCollection',
-    features: merged ? [merged] : []
-  });
+  setTimeout(() => {
+    const checkRestricoes = document.getElementById('tog-check-restricoes').checked;
 
-  // Exit selection mode
-  selecting = false;
-  document.getElementById('btn-select').classList.remove('active');
-  document.getElementById('btn-select-label').textContent = 'Selecionar quadrículas';
-  document.getElementById('sel-mode').classList.remove('visible');
-  map.getCanvas().style.cursor = '';
-  if (hoveredNumId !== null) {
-    map.setFeatureState({ source: 'grid', id: hoveredNumId }, { hover: false });
-    hoveredNumId = null;
-  }
+    let clean, parcial, total;
+    if (checkRestricoes) {
+      ({ clean, parcial, total } = classifyCells());
+    } else {
+      // Skip restriction check — everything is clean
+      clean = new Set();
+      for (const cellId of selected) expandTo1arcsec(cellId).forEach(id => clean.add(id));
+      parcial = new Set();
+      total   = new Set();
+    }
 
-  console.log('[merged polygon GeoJSON]', JSON.stringify(merged, null, 2));
-  const areaLabel = formatHa(calcSelectedAreaHa());
-  showToast(`${selected.size} quadrículas unidas → console`);
+    const mergedClean   = unionGroup(clean);
+    const mergedParcial = unionGroup(parcial);
+    const mergedTotal   = unionGroup(total);
 
-  selected.clear();
-  syncSelectedSource();
-  syncUI();
+    map.getSource('merged').setData({
+      type: 'FeatureCollection',
+      features: mergedClean ? [mergedClean] : []
+    });
+    map.getSource('restricao-parcial').setData({
+      type: 'FeatureCollection',
+      features: mergedParcial ? [mergedParcial] : []
+    });
+    map.getSource('restricao-total').setData({
+      type: 'FeatureCollection',
+      features: mergedTotal ? [mergedTotal] : []
+    });
 
-  // Keep the area visible after merge — only cleared by the Limpar button
-  document.getElementById('s-area').textContent = areaLabel;
+    // Exit selection mode
+    selecting = false;
+    document.getElementById('btn-select').classList.remove('active');
+    document.getElementById('btn-select-label').textContent = 'Selecionar quadrículas';
+    document.getElementById('sel-mode').classList.remove('visible');
+    map.getCanvas().style.cursor = '';
+    if (hoveredNumId !== null) {
+      map.setFeatureState({ source: 'grid', id: hoveredNumId }, { hover: false });
+      hoveredNumId = null;
+    }
+
+    // Update restriction stats
+    document.getElementById('s-total').textContent   = total.size   > 0 ? `${total.size} quad.`   : '—';
+    document.getElementById('s-parcial').textContent = parcial.size > 0 ? `${parcial.size} quad.` : '—';
+    document.getElementById('s-area-clean').textContent = mergedClean
+      ? formatHa(turf.area(mergedClean) / 10000) : '—';
+
+    const parts = [];
+    if (clean.size)   parts.push(`${clean.size} livres`);
+    if (parcial.size) parts.push(`${parcial.size} parcial`);
+    if (total.size)   parts.push(`${total.size} total`);
+    showToast(parts.join(' · '));
+
+    const areaLabel = formatHa(calcSelectedAreaHa());
+    selected.clear();
+    syncSelectedSource();
+    syncUI();
+    document.getElementById('s-area').textContent = areaLabel;
+  }, 30);
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -869,15 +1191,23 @@ document.getElementById('btn-clear').addEventListener('click', () => {
   selected.clear();
   syncSelectedSource();
   map.getSource('merged').setData(EMPTY_FC());
+  map.getSource('restricao-total').setData(EMPTY_FC());
+  map.getSource('restricao-parcial').setData(EMPTY_FC());
   syncUI();
-  document.getElementById('s-area').textContent = '0 ha';
+  document.getElementById('s-area').textContent       = '0 ha';
+  document.getElementById('s-area-clean').textContent = '—';
+  document.getElementById('s-total').textContent      = '—';
+  document.getElementById('s-parcial').textContent    = '—';
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Layer toggles
 // ──────────────────────────────────────────────────────────────────────────────
-const GRID_LAYERS   = ['grid-hit', 'grid-lines', 'grid-hover', 'sel-fill', 'sel-outline'];
-const MERGED_LAYERS = ['merged-fill', 'merged-outline'];
+const GRID_LAYERS    = ['grid-hit','grid-lines','grid-hover','sel-fill','sel-outline'];
+const MERGED_LAYERS  = ['merged-fill','merged-outline'];
+const DADOS_LAYERS   = ['dados-fill','dados-outline'];
+const TOTAL_LAYERS   = ['restricao-total-fill','restricao-total-outline'];
+const PARCIAL_LAYERS = ['restricao-parcial-fill','restricao-parcial-outline'];
 
 function setLayersVisibility(layerIds, visible) {
   const v = visible ? 'visible' : 'none';
@@ -889,13 +1219,69 @@ function setLayersVisibility(layerIds, visible) {
 document.getElementById('tog-grid').addEventListener('change', (e) => {
   setLayersVisibility(GRID_LAYERS, e.target.checked);
 });
-
 document.getElementById('tog-labels').addEventListener('change', (e) => {
   setLayersVisibility(['esri-boundaries'], e.target.checked);
 });
-
 document.getElementById('tog-merged').addEventListener('change', (e) => {
   setLayersVisibility(MERGED_LAYERS, e.target.checked);
+});
+document.getElementById('tog-restricao-total').addEventListener('change', (e) => {
+  setLayersVisibility(TOTAL_LAYERS, e.target.checked);
+});
+document.getElementById('tog-restricao-parcial').addEventListener('change', (e) => {
+  setLayersVisibility(PARCIAL_LAYERS, e.target.checked);
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Legend — tipos (built dynamically after GeoJSON load)
+// ──────────────────────────────────────────────────────────────────────────────
+function buildLegendTipos() {
+  const container = document.getElementById('legend-tipos');
+  container.innerHTML = '';
+
+  Object.entries(tipoColors).sort(([a],[b]) => a.localeCompare(b)).forEach(([tipo, color]) => {
+    const layerId     = `dados-tipo-${tipo}`;
+    const togId       = `tog-tipo-${tipo}`;
+
+    // Add a per-tipo filter layer so each can be toggled independently
+    if (!map.getLayer(layerId)) {
+      map.addLayer({
+        id: layerId,
+        type: 'fill',
+        source: 'dados',
+        filter: ['==', ['get', 'tipo'], tipo],
+        paint: { 'fill-color': color, 'fill-opacity': 0.35 }
+      }, 'dados-fill'); // insert below the generic fill (which we can now hide)
+    }
+
+    const row = document.createElement('div');
+    row.className = 'legend-row';
+    row.innerHTML = `
+      <span class="legend-label">
+        <span class="legend-swatch" style="background:${color};opacity:0.8;border:1px solid ${color}"></span>
+        ${tipo}
+      </span>
+      <label class="toggle">
+        <input type="checkbox" id="${togId}" checked>
+        <span class="toggle-track"></span>
+      </label>`;
+    container.appendChild(row);
+
+    document.getElementById(togId).addEventListener('change', (e) => {
+      setLayersVisibility([layerId], e.target.checked);
+    });
+  });
+
+  // Hide the generic dados-fill/outline now that per-tipo layers exist
+  setLayersVisibility(DADOS_LAYERS, false);
+}
+
+// Legend collapse toggle
+document.getElementById('legend-header').addEventListener('click', () => {
+  const body = document.getElementById('legend-body');
+  const icon = document.getElementById('legend-toggle-icon');
+  body.classList.toggle('hidden');
+  icon.classList.toggle('collapsed');
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
