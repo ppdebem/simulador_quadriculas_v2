@@ -528,14 +528,14 @@ const MAX_CELLS = 5000;
 
 // Grid levels: order matters — first match wins (highest zoom first)
 const GRID_LEVELS = [
-  { minZoom: 16, arcsec: 1,     label: '1 segundo'  },
-  { minZoom: 15, arcsec: 5,     label: '5 segundos'  },
-  { minZoom: 13, arcsec: 10,     label: '10 segundos'  },
+  { minZoom: 15.5,   arcsec: 1,     label: '1 segundo' },
+  { minZoom: 14,   arcsec: 5,     label: '5 segundos' },
+  { minZoom: 13,   arcsec: 10,    label: '10 segundos' },
   { minZoom: 10.5, arcsec: 60,    label: '1 minuto' },
-  { minZoom: 7,  arcsec: 600,   label: '10 minutos' },
-  { minZoom: 6,  arcsec: 1800,   label: '30 minutos' },
-  { minZoom: 5,  arcsec: 3600,  label: '1°'  },
-  { minZoom: 0,  arcsec: 36000, label: '10°' },
+  { minZoom: 7,    arcsec: 600,   label: '10 minutos' },
+  { minZoom: 6,    arcsec: 1800,  label: '30 minutos' },
+  { minZoom: 5,    arcsec: 3600,  label: '1°' },
+  { minZoom: 0,    arcsec: 36000, label: '10°' },
 ];
 
 function getLevel(zoom) {
@@ -687,6 +687,7 @@ map.addControl(new maplibregl.FullscreenControl({container: document.querySelect
 // Disable right-click pitch/roll, use it for panning instead
 map.dragRotate.disable();
 map.touchPitch.disable();
+map.doubleClickZoom.disable();
 
 map.getCanvas().addEventListener('contextmenu', (e) => e.preventDefault());
 
