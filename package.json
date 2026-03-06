@@ -1,11 +1,7 @@
 {
-  "name": "grid-selector",
+  "name": "simulador-de-quadriculas",
   "version": "1.0.0",
   "description": "Interactive graticule cell selector map",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
   "dependencies": {
     "express": "^4.18.0",
     "maplibre-gl": "^4.0.0",
