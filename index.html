@@ -431,6 +431,17 @@
       <span class="stat-value" id="s-parcial">—</span>
     </div>
   </div>
+
+  <div id="export-btns" style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(0,0,0,0.08);">
+    <button class="btn" id="btn-report" disabled>
+      <span class="indicator"></span>
+      Gerar Relatório
+    </button>
+    <button class="btn" id="btn-geojson" disabled>
+      <span class="indicator"></span>
+      Exportar GeoJSON
+    </button>
+  </div>
 </div>
 
 <div id="legend">
@@ -714,12 +725,14 @@ let polyMode     = false;
 const selected   = new Set();
 let hoveredNumId = null;
 let rectStart    = null;
+let polyVerts    = [];
 
-// Polygon draw state
-let polyVerts    = [];   // array of [lng, lat]
-
-// Restriction data loaded from dados.geojson
 let restrictionData = null;
+
+// Last merge results — kept for export
+let lastMergedClean   = null;
+let lastMergedParcial = null;
+let lastMergedTotal   = null;
 
 // Color palette for tipos (assigned dynamically)
 const TIPO_PALETTE = [
@@ -1221,7 +1234,7 @@ function syncUI() {
 
 /**
  * Expand a selected cell (any arcsec size) into 1-arcsecond sub-cells.
- * Returns an array of cellId strings at 1" resolution.
+ * Returns an array of cellId strings at 1-arcsec resolution.
  */
 function expandTo1arcsec(cellId) {
   const [li, lati, arcsec] = cellId.split('_').map(Number);
@@ -1245,7 +1258,7 @@ function classifyCells() {
   const parcial = new Set();
   const total   = new Set();
 
-  // Expand every selected cell (at any resolution) to 1" sub-cells
+  // Expand every selected cell (at any resolution) to 1-arcsec sub-cells
   const allSubCells = [];
   for (const cellId of selected) {
     expandTo1arcsec(cellId).forEach(id => allSubCells.push(id));
@@ -1331,6 +1344,11 @@ function mergeCells() {
     const mergedParcial = unionGroup(parcial);
     const mergedTotal   = unionGroup(total);
 
+    // Store for export
+    lastMergedClean   = mergedClean;
+    lastMergedParcial = mergedParcial;
+    lastMergedTotal   = mergedTotal;
+
     map.getSource('merged').setData({
       type: 'FeatureCollection',
       features: mergedClean ? [mergedClean] : []
@@ -1362,6 +1380,11 @@ function mergeCells() {
     document.getElementById('s-parcial').textContent = parcial.size > 0 ? `${parcial.size} quadr.` : '—';
     document.getElementById('s-area-clean').textContent = mergedClean
       ? formatHa(turf.area(mergedClean) / 10000) : '—';
+
+    // Enable export buttons if any result exists
+    const hasResults = mergedClean || mergedParcial || mergedTotal;
+    document.getElementById('btn-report').disabled  = !hasResults;
+    document.getElementById('btn-geojson').disabled = !hasResults;
 
     const parts = [];
     if (clean.size)   parts.push(`${clean.size} livres`);
@@ -1484,6 +1507,9 @@ document.getElementById('btn-clear').addEventListener('click', () => {
   document.getElementById('s-area-clean').textContent = '—';
   document.getElementById('s-total').textContent      = '—';
   document.getElementById('s-parcial').textContent    = '—';
+  lastMergedClean = lastMergedParcial = lastMergedTotal = null;
+  document.getElementById('btn-report').disabled  = true;
+  document.getElementById('btn-geojson').disabled = true;
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1573,6 +1599,96 @@ document.getElementById('legend-header').addEventListener('click', () => {
 // ──────────────────────────────────────────────────────────────────────────────
 // Toast
 // ──────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────────
+// Export helpers
+// ──────────────────────────────────────────────────────────────────────────────
+
+function extractRings(geojsonFeature) {
+  // Returns array of { label, coords } for every ring in a Polygon or MultiPolygon
+  const rings = [];
+  const geom  = geojsonFeature.geometry;
+  if (geom.type === 'Polygon') {
+    geom.coordinates.forEach((ring, i) => {
+      rings.push({ label: i === 0 ? 'Anel exterior' : `Buraco ${i}`, coords: ring });
+    });
+  } else if (geom.type === 'MultiPolygon') {
+    geom.coordinates.forEach((poly, pi) => {
+      poly.forEach((ring, ri) => {
+        rings.push({
+          label: ri === 0 ? `Polígono ${pi + 1} — Anel exterior` : `Polígono ${pi + 1} — Buraco ${ri}`,
+          coords: ring
+        });
+      });
+    });
+  }
+  return rings;
+}
+
+function buildReportHTML() {
+  const sections = [
+    { title: 'Área livre',        color: '#0aafb5', feature: lastMergedClean   },
+    { title: 'Restrição parcial', color: '#d07020', feature: lastMergedParcial },
+    { title: 'Restrição total',   color: '#c03030', feature: lastMergedTotal   },
+  ].filter(s => s.feature);
+
+  const C = '<\/';  // closing tag prefix — split to fool the HTML parser
+  const head = '<!DOCTYPE html><html lang="pt-BR"><head>'
+    + '<meta charset="UTF-8">'
+    + '<title>Relat\u00f3rio de Quadr\u00edculas<\/title>'
+    + '<style>'
+    + 'body{font-family:Courier New,monospace;padding:32px;background:#f8f9fa;color:#1a2a3a}'
+    + 'h1{font-size:16px;letter-spacing:3px;text-transform:uppercase;margin-bottom:24px;color:#2a6090}'
+    + 'h2{font-size:12px;letter-spacing:2px;text-transform:uppercase;margin:28px 0 6px;padding:6px 10px;border-radius:2px;color:#fff}'
+    + 'h3{font-size:10px;letter-spacing:1px;color:#6a8090;margin:14px 0 4px}'
+    + 'table{border-collapse:collapse;width:100%;max-width:500px;margin-bottom:8px;font-size:11px}'
+    + 'th{background:#eef2f5;padding:5px 10px;text-align:left;letter-spacing:1px;text-transform:uppercase;font-size:9px;color:#5a7090}'
+    + 'td{padding:4px 10px;border-bottom:1px solid #e4eaf0;font-variant-numeric:tabular-nums}'
+    + 'tr:last-child td{border-bottom:none}'
+    + '.meta{font-size:11px;color:#6a8090;margin-bottom:4px}'
+    + C+'style>'+C+'head><body>'
+    + '<h1>Relat\u00f3rio de Quadr\u00edculas<\/h1>'
+    + '<p class="meta">Gerado em: ' + new Date().toLocaleString('pt-BR') + '<\/p>';
+
+  let body = '';
+  sections.forEach(function(s) {
+    const areaHa = turf.area(s.feature) / 10000;
+    body += '<h2 style="background:' + s.color + '">' + s.title + ' \u2014 ' + formatHa(areaHa) + C+'h2>';
+    extractRings(s.feature).forEach(function(ring) {
+      body += '<h3>' + ring.label + ' (' + ring.coords.length + ' v\u00e9rtices)' + C + 'h3>'
+            + '<table><thead><tr><th>#<\/th><th>Longitude<\/th><th>Latitude<\/th><\/tr><\/thead><tbody>';
+      ring.coords.forEach(function(c, i) {
+        body += '<tr><td>' + (i+1) + '<\/td><td>' + c[0].toFixed(8) + '<\/td><td>' + c[1].toFixed(8) + '<\/td><\/tr>';
+      });
+      body += C+'tbody>'+C+'table>';
+    });
+  });
+
+  return head + body + C+'body>'+C+'html>';
+}
+
+document.getElementById('btn-report').addEventListener('click', () => {
+  const win = window.open('', '_blank');
+  win.document.write(buildReportHTML());
+  win.document.close();
+});
+
+document.getElementById('btn-geojson').addEventListener('click', () => {
+  const features = [
+    lastMergedClean   ? { ...lastMergedClean,   properties: { tipo: 'livre'            } } : null,
+    lastMergedParcial ? { ...lastMergedParcial, properties: { tipo: 'restricao_parcial' } } : null,
+    lastMergedTotal   ? { ...lastMergedTotal,   properties: { tipo: 'restricao_total'   } } : null,
+  ].filter(Boolean);
+
+  const fc   = JSON.stringify({ type: 'FeatureCollection', features }, null, 2);
+  const blob = new Blob([fc], { type: 'application/geo+json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `quadriculas_${new Date().toISOString().slice(0,10)}.geojson`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
 let toastTimer = null;
 function showToast(msg) {
   const el = document.getElementById('toast');
