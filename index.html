@@ -1320,9 +1320,9 @@ function mergeCells() {
     if (checkRestricoes) {
       ({ clean, parcial, total } = classifyCells());
     } else {
-      // Skip restriction check — everything is clean
-      clean = new Set();
-      for (const cellId of selected) expandTo1arcsec(cellId).forEach(id => clean.add(id));
+      // No restriction check — union the original selected cells directly,
+      // no need to expand to 1-arcsecond sub-cells
+      clean   = new Set(selected);
       parcial = new Set();
       total   = new Set();
     }
