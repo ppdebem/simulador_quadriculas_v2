@@ -447,7 +447,7 @@
 <div id="legend">
   <div id="legend-header">
     <span id="legend-title">Legenda / Camadas</span>
-    <span id="legend-toggle-icon">▾</span>
+    <span id="legend-toggle-icon">▼</span>
   </div>
   <div id="legend-body">
 
@@ -490,7 +490,7 @@
 
     <div class="legend-row">
       <span class="legend-label">
-        <span class="legend-swatch" style="background:rgba(220,50,50,0.35);border:2px solid rgba(220,50,50,0.9)"></span>
+        <span class="legend-swatch" style="background:rgba(0, 0, 0, 0.5);border:2px solid rgba(220,50,50,0.9)"></span>
         Restrição total
       </span>
       <label class="toggle">
@@ -875,7 +875,7 @@ map.on('load', () => {
     id: 'restricao-total-fill',
     type: 'fill',
     source: 'restricao-total',
-    paint: { 'fill-color': 'rgba(220,50,50,0.25)' }
+    paint: { 'fill-color': 'rgba(0, 0, 0, 0.5)' }
   });
   map.addLayer({
     id: 'restricao-total-outline',
