@@ -442,6 +442,23 @@
       Exportar GeoJSON
     </button>
   </div>
+
+  <div id="user-poly-section" style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(0,0,0,0.08);">
+    <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#7a90a0;margin-bottom:9px;">Polígono do usuário</div>
+    <button class="btn" id="btn-upload-poly">
+      <span class="indicator"></span>
+      Carregar GeoJSON
+    </button>
+    <button class="btn" id="btn-transform-poly" disabled>
+      <span class="indicator"></span>
+      Transformar polígono
+    </button>
+    <button class="btn" id="btn-clear-poly" disabled>
+      <span class="indicator"></span>
+      Remover polígono
+    </button>
+    <input type="file" id="file-input-poly" accept=".geojson,application/geo+json,application/json" style="display:none">
+  </div>
 </div>
 
 <div id="legend">
@@ -513,6 +530,20 @@
     <div class="legend-section-title">Dados — tipo</div>
     <div id="legend-tipos">
       <!-- populated dynamically after dados.geojson loads -->
+    </div>
+
+    <div id="legend-user-poly-row" class="legend-section-title" style="display:none;margin-top:10px;">Polígono do usuário</div>
+    <div id="legend-user-poly" style="display:none">
+      <div class="legend-row">
+        <span class="legend-label">
+          <span class="legend-swatch" style="background:rgba(255,230,50,0.3);border:2px solid rgba(255,200,0,0.9)"></span>
+          Polígono carregado
+        </span>
+        <label class="toggle">
+          <input type="checkbox" id="tog-user-poly" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
     </div>
 
   </div>
@@ -737,6 +768,9 @@ let lastMergedClean   = null;
 let lastMergedParcial = null;
 let lastMergedTotal   = null;
 
+// User-uploaded polygon
+let userPolyFeature = null;
+
 // Color palette for tipos (assigned dynamically)
 const TIPO_PALETTE = [
   '#e6194b','#3cb44b','#ffe119','#4363d8','#f58231',
@@ -755,6 +789,7 @@ map.on('load', () => {
   map.addSource('sel-cells',{ type: 'geojson', data: EMPTY_FC() });
   map.addSource('merged',   { type: 'geojson', data: EMPTY_FC() });
   map.addSource('poly-draw',{ type: 'geojson', data: EMPTY_FC() });
+  map.addSource('user-poly',{ type: 'geojson', data: EMPTY_FC() });
 
   // ── Layers (back to front) ─────────────────────────────────────────────────
 
@@ -825,6 +860,20 @@ map.on('load', () => {
       'line-width': 2.5,
       'line-dasharray': [4, 2]
     }
+  });
+
+  // User-uploaded polygon
+  map.addLayer({
+    id: 'user-poly-fill',
+    type: 'fill',
+    source: 'user-poly',
+    paint: { 'fill-color': 'rgba(255,230,50,0.15)' }
+  });
+  map.addLayer({
+    id: 'user-poly-outline',
+    type: 'line',
+    source: 'user-poly',
+    paint: { 'line-color': 'rgba(255,200,0,0.95)', 'line-width': 2.5 }
   });
 
   // Polygon draw preview — fill + outline + vertex dots
@@ -1545,6 +1594,123 @@ document.getElementById('tog-restricao-total').addEventListener('change', (e) =>
 });
 document.getElementById('tog-restricao-parcial').addEventListener('change', (e) => {
   setLayersVisibility(PARCIAL_LAYERS, e.target.checked);
+});
+document.getElementById('tog-user-poly').addEventListener('change', (e) => {
+  setLayersVisibility(['user-poly-fill','user-poly-outline'], e.target.checked);
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// User polygon upload & transform
+// ──────────────────────────────────────────────────────────────────────────────
+function setUserPolyLoaded(loaded) {
+  document.getElementById('btn-transform-poly').disabled = !loaded;
+  document.getElementById('btn-clear-poly').disabled     = !loaded;
+  document.getElementById('legend-user-poly-row').style.display = loaded ? '' : 'none';
+  document.getElementById('legend-user-poly').style.display     = loaded ? '' : 'none';
+}
+
+document.getElementById('btn-upload-poly').addEventListener('click', () => {
+  document.getElementById('file-input-poly').click();
+});
+
+document.getElementById('file-input-poly').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  // Reset so the same file can be re-uploaded if needed
+  e.target.value = '';
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    let geojson;
+    try {
+      geojson = JSON.parse(ev.target.result);
+    } catch (_) {
+      showToast('Erro: arquivo JSON inválido');
+      return;
+    }
+
+    // Accept FeatureCollection with one feature, or a bare Feature
+    let feature = null;
+    if (geojson.type === 'FeatureCollection') {
+      const polys = (geojson.features || []).filter(f =>
+        f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon')
+      );
+      if (polys.length === 0) {
+        showToast('Nenhum polígono encontrado no arquivo');
+        return;
+      }
+      if (polys.length > 1) {
+        showToast('O arquivo deve conter apenas um polígono');
+        return;
+      }
+      feature = polys[0];
+    } else if (geojson.type === 'Feature') {
+      if (!geojson.geometry ||
+          (geojson.geometry.type !== 'Polygon' && geojson.geometry.type !== 'MultiPolygon')) {
+        showToast('A feature deve ser um Polygon ou MultiPolygon');
+        return;
+      }
+      feature = geojson;
+    } else if (geojson.type === 'Polygon' || geojson.type === 'MultiPolygon') {
+      feature = { type: 'Feature', geometry: geojson, properties: {} };
+    } else {
+      showToast('Formato não suportado — use Polygon ou MultiPolygon');
+      return;
+    }
+
+    userPolyFeature = feature;
+    map.getSource('user-poly').setData({ type: 'FeatureCollection', features: [feature] });
+    setUserPolyLoaded(true);
+
+    // Zoom to feature extents
+    const bbox = turf.bbox(feature);
+    map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 60, duration: 800 });
+
+    showToast('Polígono carregado');
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById('btn-transform-poly').addEventListener('click', () => {
+  if (!userPolyFeature) return;
+
+  showToast('Transformando polígono…');
+  setTimeout(() => {
+    const bbox = turf.bbox(userPolyFeature);
+    const size = 1 / 3600; // 1 arcsecond
+    const r    = (n) => Math.round(n * 1e8) / 1e8;
+
+    const liStart   = Math.floor(bbox[0] / size);
+    const liEnd     = Math.ceil(bbox[2]  / size);
+    const latiStart = Math.floor(bbox[1] / size);
+    const latiEnd   = Math.ceil(bbox[3]  / size);
+
+    let count = 0;
+    for (let li = liStart; li < liEnd; li++) {
+      for (let lati = latiStart; lati < latiEnd; lati++) {
+        const x0 = r(li * size),       y0 = r(lati * size);
+        const x1 = r((li + 1) * size), y1 = r((lati + 1) * size);
+        if (x1 > 180.001 || x0 < -180.001) continue;
+        if (y1 >  90.001 || y0 <  -90.001) continue;
+
+        const cell = turf.polygon([[[x0,y0],[x1,y0],[x1,y1],[x0,y1],[x0,y0]]]);
+        if (turf.booleanIntersects(cell, userPolyFeature)) {
+          selected.add(makeCellId(li, lati, 1));
+          count++;
+        }
+      }
+    }
+
+    syncSelectedSource();
+    syncUI();
+    showToast(count + ' quadrículas selecionadas');
+  }, 30);
+});
+
+document.getElementById('btn-clear-poly').addEventListener('click', () => {
+  userPolyFeature = null;
+  map.getSource('user-poly').setData(EMPTY_FC());
+  setUserPolyLoaded(false);
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
