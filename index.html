@@ -539,13 +539,16 @@ const MAX_CELLS = 5000;
 
 // Grid levels: order matters — first match wins (highest zoom first)
 const GRID_LEVELS = [
-  { minZoom: 15.5,   arcsec: 1,     label: '1 segundo' },
+  { minZoom: 15.5, arcsec: 1,     label: '1 segundo' },
   { minZoom: 14,   arcsec: 5,     label: '5 segundos' },
   { minZoom: 13,   arcsec: 10,    label: '10 segundos' },
-  { minZoom: 10.5, arcsec: 60,    label: '1 minuto' },
-  { minZoom: 7,    arcsec: 600,   label: '10 minutos' },
-  { minZoom: 6,    arcsec: 1800,  label: '30 minutos' },
+  { minZoom: 12,   arcsec: 30,    label: '30 segundos' },
+  { minZoom: 11,   arcsec: 60,    label: '1 minuto' },
+  { minZoom: 10,   arcsec: 300,   label: '5 minutos' },
+  { minZoom: 8,    arcsec: 600,   label: '10 minutos' },
+  { minZoom: 7,    arcsec: 1800,  label: '30 minutos' },
   { minZoom: 5,    arcsec: 3600,  label: '1°' },
+  { minZoom: 3.5,  arcsec: 18000, label: '5°' },
   { minZoom: 0,    arcsec: 36000, label: '10°' },
 ];
 
