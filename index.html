@@ -445,13 +445,21 @@
 
   <div id="user-poly-section" style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(0,0,0,0.08);">
     <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#7a90a0;margin-bottom:9px;">Polígono do usuário</div>
+    <button class="btn" id="btn-draw-user-poly">
+      <span class="indicator"></span>
+      Desenhar polígono
+    </button>
     <button class="btn" id="btn-upload-poly">
       <span class="indicator"></span>
       Carregar GeoJSON
     </button>
     <button class="btn" id="btn-transform-poly" disabled>
       <span class="indicator"></span>
-      Transformar polígono
+      Selecionar quadrículas
+    </button>
+    <button class="btn" id="btn-adesao-poly" disabled>
+      <span class="indicator"></span>
+      Simular adesão
     </button>
     <button class="btn" id="btn-clear-poly" disabled>
       <span class="indicator"></span>
@@ -536,7 +544,7 @@
     <div id="legend-user-poly" style="display:none">
       <div class="legend-row">
         <span class="legend-label">
-          <span class="legend-swatch" style="background:rgba(255,230,50,0.3);border:2px solid rgba(255,200,0,0.9)"></span>
+          <span class="legend-swatch" style="background:rgba(180,100,255,0.3);border:2px solid rgba(160,80,240,0.9)"></span>
           Polígono carregado
         </span>
         <label class="toggle">
@@ -769,7 +777,8 @@ let lastMergedParcial = null;
 let lastMergedTotal   = null;
 
 // User-uploaded polygon
-let userPolyFeature = null;
+let userPolyFeature  = null;
+let drawingUserPoly  = false;  // true while user is drawing their own poly
 
 // Color palette for tipos (assigned dynamically)
 const TIPO_PALETTE = [
@@ -867,13 +876,13 @@ map.on('load', () => {
     id: 'user-poly-fill',
     type: 'fill',
     source: 'user-poly',
-    paint: { 'fill-color': 'rgba(255,230,50,0.15)' }
+    paint: { 'fill-color': 'rgba(180,100,255,0.15)' }
   });
   map.addLayer({
     id: 'user-poly-outline',
     type: 'line',
     source: 'user-poly',
-    paint: { 'line-color': 'rgba(255,200,0,0.95)', 'line-width': 2.5 }
+    paint: { 'line-color': 'rgba(160,80,240,0.95)', 'line-width': 2.5 }
   });
 
   // Polygon draw preview — fill + outline + vertex dots
@@ -1146,20 +1155,40 @@ map.on('load', () => {
     polyVerts = [];
     map.getSource('poly-draw').setData(EMPTY_FC());
     map.dragPan.enable();
+    if (drawingUserPoly) {
+      drawingUserPoly = false;
+      map.getCanvas().style.cursor = '';
+      document.getElementById('btn-draw-user-poly').classList.remove('active');
+    }
   }
 
   function commitPolyDraw() {
     if (polyVerts.length < 3) { cancelPolyDraw(); return; }
 
-    const ring = [...polyVerts, polyVerts[0]];
+    const ring     = [...polyVerts, polyVerts[0]];
     const drawPoly = turf.polygon([ring]);
+
+    if (drawingUserPoly) {
+      // Set as user polygon instead of selecting cells
+      drawingUserPoly = false;
+      map.getCanvas().style.cursor = '';
+      document.getElementById('btn-draw-user-poly').classList.remove('active');
+      polyVerts = [];
+      map.getSource('poly-draw').setData(EMPTY_FC());
+      map.dragPan.enable();
+
+      userPolyFeature = { type: 'Feature', geometry: drawPoly.geometry, properties: {} };
+      map.getSource('user-poly').setData({ type: 'FeatureCollection', features: [userPolyFeature] });
+      setUserPolyLoaded(true);
+      showToast('Polígono definido');
+      return;
+    }
 
     const zoom  = map.getZoom();
     const level = getLevel(zoom);
     const size  = level.arcsec / 3600;
     const r     = (n) => Math.round(n * 1e8) / 1e8;
 
-    // Bbox of drawn polygon for coarse pre-filter
     const bbox = turf.bbox(drawPoly);
     const liStart   = Math.floor(bbox[0] / size);
     const liEnd     = Math.ceil(bbox[2]  / size);
@@ -1188,9 +1217,10 @@ map.on('load', () => {
   // Click: add vertex (ignore double-click second event via timing)
   let lastPolyClick = 0;
   canvas.addEventListener('click', (e) => {
-    if (!selecting || !polyMode || e.button !== 0) return;
+    const active = (selecting && polyMode) || drawingUserPoly;
+    if (!active || e.button !== 0) return;
     const now = Date.now();
-    if (now - lastPolyClick < 350) return; // suppress the single-click on dblclick
+    if (now - lastPolyClick < 350) return;
     lastPolyClick = now;
 
     const lngLat = map.unproject([e.offsetX, e.offsetY]);
@@ -1201,14 +1231,16 @@ map.on('load', () => {
 
   // Mousemove: rubber-band line to cursor
   canvas.addEventListener('mousemove', (e) => {
-    if (!selecting || !polyMode || !polyVerts.length) return;
+    const active = (selecting && polyMode) || drawingUserPoly;
+    if (!active || !polyVerts.length) return;
     const lngLat = map.unproject([e.offsetX, e.offsetY]);
     updatePolyPreview(lngLat);
   });
 
   // Double-click: close polygon
   canvas.addEventListener('dblclick', (e) => {
-    if (!selecting || !polyMode) return;
+    const active = (selecting && polyMode) || drawingUserPoly;
+    if (!active) return;
     e.preventDefault();
     lastPolyClick = Date.now();
     commitPolyDraw();
@@ -1216,7 +1248,7 @@ map.on('load', () => {
 
   // Escape: cancel draw
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && selecting && polyMode) cancelPolyDraw();
+    if (e.key === 'Escape' && ((selecting && polyMode) || drawingUserPoly)) cancelPolyDraw();
   });
 });
 
@@ -1604,10 +1636,26 @@ document.getElementById('tog-user-poly').addEventListener('change', (e) => {
 // ──────────────────────────────────────────────────────────────────────────────
 function setUserPolyLoaded(loaded) {
   document.getElementById('btn-transform-poly').disabled = !loaded;
+  document.getElementById('btn-adesao-poly').disabled    = !loaded;
   document.getElementById('btn-clear-poly').disabled     = !loaded;
   document.getElementById('legend-user-poly-row').style.display = loaded ? '' : 'none';
   document.getElementById('legend-user-poly').style.display     = loaded ? '' : 'none';
 }
+
+document.getElementById('btn-draw-user-poly').addEventListener('click', () => {
+  if (drawingUserPoly) {
+    cancelPolyDraw();
+    return;
+  }
+  // Cancel any active selection draw
+  if (selecting && polyMode) cancelPolyDraw();
+  drawingUserPoly = true;
+  polyVerts = [];
+  map.getSource('poly-draw').setData(EMPTY_FC());
+  map.getCanvas().style.cursor = 'crosshair';
+  document.getElementById('btn-draw-user-poly').classList.add('active');
+  showToast('Clique para adicionar v\u00e9rtices \u00b7 Duplo clique para fechar');
+});
 
 document.getElementById('btn-upload-poly').addEventListener('click', () => {
   document.getElementById('file-input-poly').click();
@@ -1674,10 +1722,23 @@ document.getElementById('file-input-poly').addEventListener('change', (e) => {
 document.getElementById('btn-transform-poly').addEventListener('click', () => {
   if (!userPolyFeature) return;
 
+  const ha = turf.area(userPolyFeature) / 10000;
+  const checkRestricoes = document.getElementById('tog-check-restricoes').checked;
+  if (checkRestricoes && ha > AREA_WARNING_HA) {
+    showModal(
+      'Você selecionou uma área muito grande e o processamento pode demorar (<strong>' + formatHa(ha) + '<\/strong>). Tem certeza que quer prosseguir?',
+      doTransformPoly
+    );
+  } else {
+    doTransformPoly();
+  }
+});
+
+function doTransformPoly() {
   showToast('Transformando polígono…');
   setTimeout(() => {
     const bbox = turf.bbox(userPolyFeature);
-    const size = 1 / 3600; // 1 arcsecond
+    const size = 1 / 3600;
     const r    = (n) => Math.round(n * 1e8) / 1e8;
 
     const liStart   = Math.floor(bbox[0] / size);
@@ -1705,7 +1766,57 @@ document.getElementById('btn-transform-poly').addEventListener('click', () => {
     syncUI();
     showToast(count + ' quadrículas selecionadas');
   }, 30);
+}
+
+document.getElementById('btn-adesao-poly').addEventListener('click', () => {
+  if (!userPolyFeature) return;
+
+  const ha = turf.area(userPolyFeature) / 10000;
+  const checkRestricoes = document.getElementById('tog-check-restricoes').checked;
+  if (checkRestricoes && ha > AREA_WARNING_HA) {
+    showModal(
+      'Você selecionou uma área muito grande e o processamento pode demorar (<strong>' + formatHa(ha) + '<\/strong>). Tem certeza que quer prosseguir?',
+      doAdesaoPoly
+    );
+  } else {
+    doAdesaoPoly();
+  }
 });
+
+function doAdesaoPoly() {
+  showToast('Simulando ades\u00e3o…');
+  setTimeout(() => {
+    const bbox = turf.bbox(userPolyFeature);
+    const size = 1 / 3600;
+    const r    = (n) => Math.round(n * 1e8) / 1e8;
+
+    const liStart   = Math.floor(bbox[0] / size);
+    const liEnd     = Math.ceil(bbox[2]  / size);
+    const latiStart = Math.floor(bbox[1] / size);
+    const latiEnd   = Math.ceil(bbox[3]  / size);
+
+    let count = 0;
+    for (let li = liStart; li < liEnd; li++) {
+      for (let lati = latiStart; lati < latiEnd; lati++) {
+        const x0 = r(li * size),       y0 = r(lati * size);
+        const x1 = r((li + 1) * size), y1 = r((lati + 1) * size);
+        if (x1 > 180.001 || x0 < -180.001) continue;
+        if (y1 >  90.001 || y0 <  -90.001) continue;
+
+        const cell = turf.polygon([[[x0,y0],[x1,y0],[x1,y1],[x0,y1],[x0,y0]]]);
+        // Only fully contained cells
+        if (turf.booleanContains(userPolyFeature, cell)) {
+          selected.add(makeCellId(li, lati, 1));
+          count++;
+        }
+      }
+    }
+
+    syncSelectedSource();
+    syncUI();
+    showToast(count + ' quadr\u00edculas selecionadas (ades\u00e3o)');
+  }, 30);
+}
 
 document.getElementById('btn-clear-poly').addEventListener('click', () => {
   userPolyFeature = null;
