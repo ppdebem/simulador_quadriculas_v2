@@ -1735,6 +1735,7 @@ document.getElementById('btn-transform-poly').addEventListener('click', () => {
 });
 
 function doTransformPoly() {
+  selected.clear();
   showToast('Transformando polígono…');
   setTimeout(() => {
     const bbox = turf.bbox(userPolyFeature);
@@ -1784,6 +1785,7 @@ document.getElementById('btn-adesao-poly').addEventListener('click', () => {
 });
 
 function doAdesaoPoly() {
+  selected.clear();
   showToast('Simulando ades\u00e3o…');
   setTimeout(() => {
     const bbox = turf.bbox(userPolyFeature);
