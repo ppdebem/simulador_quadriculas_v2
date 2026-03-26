@@ -34,7 +34,7 @@
     }
 
     #panel-title {
-      font-size: 9px;
+      font-size: 11px;
       letter-spacing: 4px;
       text-transform: uppercase;
       color: #2a6090;
@@ -53,7 +53,8 @@
       border-top: none;
     }
     .section-title {
-      font-size: 9px;
+      font-weight: bold;
+      font-size: 10px;
       letter-spacing: 3px;
       text-transform: uppercase;
       color: #7a90a0;
@@ -80,6 +81,7 @@
     .btn {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
       width: 100%;
       padding: 8px 10px;
@@ -109,18 +111,31 @@
       opacity: 0.3;
       cursor: not-allowed;
     }
-    .btn .indicator {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      border: 1px solid rgba(0,0,0,0.25);
-      flex-shrink: 0;
-      transition: background 0.15s, box-shadow 0.15s;
+    .action-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
     }
-    .btn.active .indicator {
-      background: #1a88ee;
-      border-color: #1a88ee;
-      box-shadow: 0 0 6px rgba(20,130,240,0.6);
+    .action-row .btn {
+      flex: 1;
+      width: auto;
+      margin-bottom: 0;
+    }
+    .btn.btn-primary {
+      background: #1f6fd1;
+      border-color: #1f6fd1;
+      color: #fff;
+    }
+    .btn.btn-primary:hover:not(:disabled) {
+      background: #175cb0;
+      border-color: #175cb0;
+      color: #fff;
+    }
+    .btn.btn-primary:disabled {
+      background: #8fb7ea;
+      border-color: #8fb7ea;
+      color: rgba(255,255,255,0.9);
+      opacity: 1;
     }
 
     /* ── Stats ──────────────────────────────────────────────────────────── */
@@ -131,7 +146,7 @@
       padding: 3px 0;
     }
     .stat-label {
-      font-size: 11px;
+      font-size: 10px;
       letter-spacing: 1.5px;
       color: #7a90a0;
       text-transform: uppercase;
@@ -398,7 +413,7 @@
 <div id="rect-band"></div>
 
 <div id="panel">
-  <div id="panel-title">Simulador de Quadrículas v2</div>
+  <div id="panel-title">Simulador de Quadrículas</div>
 
   <div class="panel-section">
     <div class="section-title">Tipo de Requerimento</div>
@@ -453,14 +468,14 @@
     <div class="toggle-row">
       <span class="toggle-label">Registro de Extração</span>
       <label class="toggle">
-        <input type="checkbox" class="req-toggle" id="req-re" data-max-ha="50">
+        <input type="checkbox" class="req-toggle" id="req-re" data-max-ha="5">
         <span class="toggle-track"></span>
       </label>
     </div>
     <div class="toggle-row">
       <span class="toggle-label">Registro de Licenciamento</span>
       <label class="toggle">
-        <input type="checkbox" class="req-toggle" id="req-rl" data-max-ha="5">
+        <input type="checkbox" class="req-toggle" id="req-rl" data-max-ha="50">
         <span class="toggle-track"></span>
       </label>
     </div>
@@ -496,12 +511,14 @@
       <button class="mode-btn"        id="mode-poly">Polígono</button>
     </div>
 
-    <button class="btn" id="btn-clear">
-      <span class="indicator"></span>Limpar
-    </button>
-    <button class="btn" id="btn-confirm" disabled>
-      <span class="indicator"></span>Confirmar
-    </button>
+    <div class="action-row">
+      <button class="btn btn-primary" id="btn-clear">
+       Limpar
+      </button>
+      <button class="btn btn-primary" id="btn-confirm">
+        Confirmar
+      </button>
+    </div>
     <input type="file" id="file-input-poly" accept=".geojson,.json,.csv,application/geo+json,application/json,text/csv" style="display:none">
   </div>
 
@@ -525,10 +542,10 @@
     </div>
 
     <button class="btn" id="btn-report" disabled>
-      <span class="indicator"></span>Gerar Relatório
+      Gerar Relatório
     </button>
     <button class="btn" id="btn-geojson" disabled>
-      <span class="indicator"></span>Exportar GeoJSON
+      Exportar GeoJSON
     </button>
   </div>
 </div>
@@ -1218,14 +1235,9 @@ map.on('load', () => {
   }
 
   function cancelPolyDraw() {
-    polyVerts = [];
-    map.getSource('poly-draw').setData(EMPTY_FC());
-    map.dragPan.enable();
-    if (drawingUserPoly) {
-      drawingUserPoly = false;
-      map.getCanvas().style.cursor = '';
-      syncMethodButtons();
-    }
+    const wasDrawingUserPoly = drawingUserPoly;
+    stopUserPolygonDrawing();
+    if (wasDrawingUserPoly) syncMethodButtons();
   }
 
   function commitPolyDraw() {
@@ -1356,10 +1368,7 @@ function formatHa(ha) {
 }
 
 function syncUI() {
-  const n = selected.size;
-  const hasManualSelection = n > 0;
-  const hasUserPoly = Boolean(userPolyFeature);
-  document.getElementById('btn-confirm').disabled = !selectedRequirement || (!hasManualSelection && !hasUserPoly);
+  document.getElementById('btn-confirm').disabled = false;
   document.getElementById('s-area').textContent = formatHa(calcSelectedAreaHa());
 }
 
@@ -1515,8 +1524,10 @@ function mergeCells() {
     }
 
     // Update restriction stats
-    document.getElementById('s-total').textContent   = total.size   > 0 ? `${total.size} quadr.`   : '—';
-    document.getElementById('s-parcial').textContent = parcial.size > 0 ? `${parcial.size} quadr.` : '—';
+    document.getElementById('s-total').textContent = mergedTotal
+      ? formatHa(turf.area(mergedTotal) / 10000) : '—';
+    document.getElementById('s-parcial').textContent = mergedParcial
+      ? formatHa(turf.area(mergedParcial) / 10000) : '—';
     document.getElementById('s-area-clean').textContent = mergedClean
       ? formatHa(turf.area(mergedClean) / 10000) : '—';
 
@@ -1677,12 +1688,21 @@ document.querySelectorAll('.req-main-toggle').forEach(main => {
 // ──────────────────────────────────────────────────────────────────────────────
 const AREA_WARNING_HA = 1000;
 
-function showModal(msg, onConfirm) {
+function showModal(msg, onConfirm, options = {}) {
+  const {
+    confirmLabel = 'Sim',
+    cancelLabel = 'Não',
+    showCancel = true
+  } = options;
+
   document.getElementById('modal-msg').innerHTML = msg;
   document.getElementById('modal-overlay').classList.add('show');
 
   const yes = document.getElementById('modal-yes');
   const no  = document.getElementById('modal-no');
+  yes.textContent = confirmLabel;
+  no.textContent = cancelLabel;
+  no.style.display = showCancel ? '' : 'none';
 
   const close = () => {
     document.getElementById('modal-overlay').classList.remove('show');
@@ -1696,8 +1716,25 @@ function showModal(msg, onConfirm) {
   no.addEventListener('click',  onNo);
 }
 
+function showAlertModal(msg) {
+  showModal(msg, () => {}, { confirmLabel: 'OK', showCancel: false });
+}
+
 function getMaxAreaHa() {
   return selectedRequirement ? Number(selectedRequirement.dataset.maxHa) : null;
+}
+
+function getSelectedRequirementLabel() {
+  if (!selectedRequirement) return 'o requerimento selecionado';
+
+  const labelEl = selectedRequirement.closest('.toggle-row')?.querySelector('.toggle-label');
+  const label = labelEl?.textContent?.trim();
+  if (!label) return 'o requerimento selecionado';
+
+  const group = selectedRequirement.dataset.group;
+  if (group === 'ap') return `Autorização de Pesquisa (${label})`;
+  if (group === 'lg') return `Lavra Garimpeira (${label})`;
+  return label;
 }
 
 function enforceRequirementLimit() {
@@ -1705,7 +1742,8 @@ function enforceRequirementLimit() {
   if (!maxHa) return true;
   const currentHa = calcSelectedAreaHa();
   if (currentHa > maxHa) {
-    showToast(`Área solicitada (${formatHa(currentHa)}) excede o limite (${formatHa(maxHa)})`);
+    const requirementLabel = getSelectedRequirementLabel();
+    showAlertModal(`Área solicitada (<strong>${formatHa(currentHa)}</strong>) excede o limite permitido para <strong>${requirementLabel}</strong> (<strong>${formatHa(maxHa)}</strong>).`);
     return false;
   }
   return true;
@@ -1794,7 +1832,7 @@ document.getElementById('btn-clear').addEventListener('click', () => {
   lastMergedClean = lastMergedParcial = lastMergedTotal = null;
   document.getElementById('btn-report').disabled  = true;
   document.getElementById('btn-geojson').disabled = true;
-  document.getElementById('btn-confirm').disabled = !selectedRequirement;
+  document.getElementById('btn-confirm').disabled = false;
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1841,9 +1879,17 @@ function setUserPolyLoaded(loaded) {
   syncUI();
 }
 
+function stopUserPolygonDrawing() {
+  drawingUserPoly = false;
+  polyVerts = [];
+  map.getSource('poly-draw').setData(EMPTY_FC());
+  map.dragPan.enable();
+  map.getCanvas().style.cursor = '';
+}
+
 document.getElementById('method-draw').addEventListener('change', (e) => {
   if (!e.target.checked) {
-    if (drawingUserPoly) cancelPolyDraw();
+    stopUserPolygonDrawing();
     if (selectedMethod === 'draw') selectedMethod = null;
     syncMethodButtons();
     return;
@@ -2132,6 +2178,17 @@ function showToast(msg) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
 }
 
+function resetInitialToggles() {
+  document.querySelectorAll('.req-main-toggle, .req-toggle, .method-toggle').forEach(el => {
+    el.checked = false;
+  });
+  document.getElementById('group-ap-sub').classList.add('hidden');
+  document.getElementById('group-lg-sub').classList.add('hidden');
+  selectedRequirement = null;
+  selectedMethod = null;
+}
+
+resetInitialToggles();
 syncUI();
 </script>
 </body>
