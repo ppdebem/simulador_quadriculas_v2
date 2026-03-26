@@ -59,6 +59,22 @@
       color: #7a90a0;
       margin-bottom: 9px;
     }
+    .sub-toggle {
+      padding-left: 18px;
+      background: rgba(26, 136, 238, 0.06);
+      border: 1px solid rgba(26, 136, 238, 0.18);
+      border-radius: 2px;
+      margin: 3px 0;
+      padding-right: 6px;
+    }
+    .option-group-label {
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: #4c6378;
+      text-transform: uppercase;
+      margin: 8px 0 4px;
+    }
+    .sub-toggle-group.hidden { display: none; }
 
     /* ── Buttons ────────────────────────────────────────────────────────── */
     .btn {
@@ -386,37 +402,93 @@
 
   <div class="panel-section">
     <div class="section-title">Tipo de Requerimento</div>
-    <button class="btn req-btn" id="req-ap-amz" data-max-ha="10000">
-      <span class="indicator"></span>Autorização de Pesquisa — Amazônia legal (10.000 ha)
-    </button>
-    <button class="btn req-btn" id="req-ap-demais" data-max-ha="2000">
-      <span class="indicator"></span>Autorização de Pesquisa — Demais regiões (2.000 ha)
-    </button>
-    <button class="btn req-btn" id="req-lg-pf" data-max-ha="50">
-      <span class="indicator"></span>Lavra Garimpeira — Pessoa física (50 ha)
-    </button>
-    <button class="btn req-btn" id="req-lg-coop" data-max-ha="1000">
-      <span class="indicator"></span>Lavra Garimpeira — Cooperativa de garimpeiros (1.000 ha)
-    </button>
-    <button class="btn req-btn" id="req-re" data-max-ha="50">
-      <span class="indicator"></span>Registro de Extração (50 ha)
-    </button>
-    <button class="btn req-btn" id="req-rl" data-max-ha="5">
-      <span class="indicator"></span>Registro de Licenciamento (5 ha)
-    </button>
+    <div class="toggle-row">
+      <span class="toggle-label">Autorização de Pesquisa</span>
+      <label class="toggle">
+        <input type="checkbox" class="req-main-toggle" id="req-main-ap">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+    <div class="sub-toggle-group hidden" id="group-ap-sub">
+      <div class="toggle-row sub-toggle">
+        <span class="toggle-label">Amazônia legal</span>
+        <label class="toggle">
+          <input type="checkbox" class="req-toggle" id="req-ap-amz" data-max-ha="10000" data-group="ap">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="toggle-row sub-toggle">
+        <span class="toggle-label">Demais regiões</span>
+        <label class="toggle">
+          <input type="checkbox" class="req-toggle" id="req-ap-demais" data-max-ha="2000" data-group="ap">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">Lavra Garimpeira</span>
+      <label class="toggle">
+        <input type="checkbox" class="req-main-toggle" id="req-main-lg">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+    <div class="sub-toggle-group hidden" id="group-lg-sub">
+      <div class="toggle-row sub-toggle">
+        <span class="toggle-label">Pessoa física</span>
+        <label class="toggle">
+          <input type="checkbox" class="req-toggle" id="req-lg-pf" data-max-ha="50" data-group="lg">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="toggle-row sub-toggle">
+        <span class="toggle-label">Cooperativa de garimpeiros</span>
+        <label class="toggle">
+          <input type="checkbox" class="req-toggle" id="req-lg-coop" data-max-ha="1000" data-group="lg">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">Registro de Extração</span>
+      <label class="toggle">
+        <input type="checkbox" class="req-toggle" id="req-re" data-max-ha="50">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Registro de Licenciamento</span>
+      <label class="toggle">
+        <input type="checkbox" class="req-toggle" id="req-rl" data-max-ha="5">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
   </div>
 
   <div class="panel-section">
     <div class="section-title">Método de Seleção</div>
-    <button class="btn method-btn" id="btn-draw-user-poly">
-      <span class="indicator"></span>Desenhar polígono
-    </button>
-    <button class="btn method-btn" id="btn-upload-poly">
-      <span class="indicator"></span>Upload de poligonal
-    </button>
-    <button class="btn method-btn" id="btn-select">
-      <span class="indicator"></span><span id="btn-select-label">Selecionar quadrículas</span>
-    </button>
+    <div class="toggle-row">
+      <span class="toggle-label">Desenhar polígono</span>
+      <label class="toggle">
+        <input type="checkbox" class="method-toggle" id="method-draw">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Upload de poligonal</span>
+      <label class="toggle">
+        <input type="checkbox" class="method-toggle" id="method-upload">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label"><span id="btn-select-label">Selecionar quadrículas</span></span>
+      <label class="toggle">
+        <input type="checkbox" class="method-toggle" id="method-select">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
 
     <div id="sel-mode">
       <button class="mode-btn active" id="mode-click">Clique</button>
@@ -1292,10 +1364,13 @@ function syncUI() {
 }
 
 function syncMethodButtons() {
-  document.querySelectorAll('.method-btn').forEach(btn => btn.classList.remove('active'));
-  if (selectedMethod) {
-    const el = document.getElementById(selectedMethod);
-    if (el) el.classList.add('active');
+  const mapIds = { draw: 'method-draw', upload: 'method-upload', select: 'method-select' };
+  Object.values(mapIds).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = false;
+  });
+  if (selectedMethod && mapIds[selectedMethod]) {
+    document.getElementById(mapIds[selectedMethod]).checked = true;
   }
 }
 
@@ -1429,10 +1504,8 @@ function mergeCells() {
     });
 
     // Exit selection mode
-    selecting = false;
-    document.getElementById('btn-select').classList.remove('active');
-    document.getElementById('btn-select-label').textContent = 'Selecionar quadrículas';
-    document.getElementById('sel-mode').classList.remove('visible');
+    toggleSelectionMode(false);
+    document.getElementById('method-select').checked = false;
     map.getCanvas().style.cursor = '';
     polyVerts = [];
     map.getSource('poly-draw').setData(EMPTY_FC());
@@ -1469,29 +1542,24 @@ function mergeCells() {
 // ──────────────────────────────────────────────────────────────────────────────
 // Button wiring
 // ──────────────────────────────────────────────────────────────────────────────
-document.getElementById('btn-select').addEventListener('click', () => {
-  setSelectionMethod('btn-select');
-  selecting = !selecting;
-  const btn   = document.getElementById('btn-select');
+function toggleSelectionMode(enabled) {
   const label = document.getElementById('btn-select-label');
   const modeBar = document.getElementById('sel-mode');
-
-  if (selecting) {
-    btn.classList.add('active');
+  selecting = enabled;
+  if (enabled) {
+    setSelectionMethod('select');
     label.textContent = 'Parar seleção';
     modeBar.classList.add('visible');
     map.getCanvas().style.cursor = 'crosshair';
     if (polyMode) showToast('Clique para adicionar vértices · Duplo clique para fechar');
     else showToast(rectMode ? 'Arraste para selecionar área' : 'Clique nas quadrículas para selecionar');
   } else {
-    btn.classList.remove('active');
     label.textContent = 'Selecionar quadrículas';
     modeBar.classList.remove('visible');
     map.getCanvas().style.cursor = '';
     map.dragPan.enable();
     document.getElementById('rect-band').style.display = 'none';
     rectStart = null;
-    // Cancel any in-progress polygon draw
     polyVerts = [];
     if (map.getSource('poly-draw')) map.getSource('poly-draw').setData(EMPTY_FC());
     if (hoveredNumId !== null) {
@@ -1500,6 +1568,17 @@ document.getElementById('btn-select').addEventListener('click', () => {
     }
   }
   syncUI();
+}
+
+document.getElementById('method-select').addEventListener('change', (e) => {
+  if (e.target.checked) {
+    setSelectionMethod('select');
+    toggleSelectionMode(true);
+  } else {
+    toggleSelectionMode(false);
+    selectedMethod = null;
+    syncMethodButtons();
+  }
 });
 
 document.getElementById('mode-click').addEventListener('click', () => {
@@ -1527,11 +1606,68 @@ document.getElementById('mode-poly').addEventListener('click', () => {
   if (selecting) showToast('Clique para adicionar vértices · Duplo clique para fechar');
 });
 
-document.querySelectorAll('.req-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.req-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    selectedRequirement = btn;
+document.querySelectorAll('.req-toggle').forEach(tg => {
+  tg.addEventListener('change', () => {
+    if (tg.checked) {
+      document.querySelectorAll('.req-toggle').forEach(other => {
+        if (other !== tg) other.checked = false;
+      });
+      const group = tg.dataset.group;
+      if (group === 'ap') {
+        document.getElementById('req-main-ap').checked = true;
+        document.getElementById('group-ap-sub').classList.remove('hidden');
+        document.getElementById('req-main-lg').checked = false;
+        document.getElementById('group-lg-sub').classList.add('hidden');
+        document.querySelectorAll('.req-toggle[data-group=\"lg\"]').forEach(el => { el.checked = false; });
+      }
+      if (group === 'lg') {
+        document.getElementById('req-main-lg').checked = true;
+        document.getElementById('group-lg-sub').classList.remove('hidden');
+        document.getElementById('req-main-ap').checked = false;
+        document.getElementById('group-ap-sub').classList.add('hidden');
+        document.querySelectorAll('.req-toggle[data-group=\"ap\"]').forEach(el => { el.checked = false; });
+      }
+      if (!group) {
+        document.getElementById('req-main-ap').checked = false;
+        document.getElementById('req-main-lg').checked = false;
+        document.getElementById('group-ap-sub').classList.add('hidden');
+        document.getElementById('group-lg-sub').classList.add('hidden');
+        document.querySelectorAll('.req-toggle[data-group=\"ap\"], .req-toggle[data-group=\"lg\"]').forEach(el => {
+          el.checked = false;
+        });
+      }
+      selectedRequirement = tg;
+    } else {
+      selectedRequirement = null;
+    }
+    syncUI();
+  });
+});
+
+document.querySelectorAll('.req-main-toggle').forEach(main => {
+  main.addEventListener('change', () => {
+    const isAP = main.id === 'req-main-ap';
+    const thisGroupId = isAP ? 'group-ap-sub' : 'group-lg-sub';
+    const otherMainId = isAP ? 'req-main-lg' : 'req-main-ap';
+    const otherGroupId = isAP ? 'group-lg-sub' : 'group-ap-sub';
+    const thisSubSelector = isAP ? '.req-toggle[data-group=\"ap\"]' : '.req-toggle[data-group=\"lg\"]';
+    const otherSubSelector = isAP ? '.req-toggle[data-group=\"lg\"]' : '.req-toggle[data-group=\"ap\"]';
+
+    if (main.checked) {
+      document.getElementById(thisGroupId).classList.remove('hidden');
+      document.getElementById(otherMainId).checked = false;
+      document.getElementById(otherGroupId).classList.add('hidden');
+      document.querySelectorAll(otherSubSelector).forEach(el => { el.checked = false; });
+      if (selectedRequirement && selectedRequirement.matches(otherSubSelector)) {
+        selectedRequirement = null;
+      }
+    } else {
+      document.getElementById(thisGroupId).classList.add('hidden');
+      document.querySelectorAll(thisSubSelector).forEach(el => { el.checked = false; });
+      if (selectedRequirement && selectedRequirement.matches(thisSubSelector)) {
+        selectedRequirement = null;
+      }
+    }
     syncUI();
   });
 });
@@ -1611,7 +1747,7 @@ document.getElementById('btn-confirm').addEventListener('click', () => {
     return;
   }
 
-  if (userPolyFeature && selectedMethod !== 'btn-select') {
+  if (userPolyFeature && selectedMethod !== 'select') {
     showToast('Selecionando quadrículas em 1 segundo de arco…');
     convertUserPolygonToSelectedCells();
   }
@@ -1635,14 +1771,11 @@ document.getElementById('btn-confirm').addEventListener('click', () => {
 });
 
 document.getElementById('btn-clear').addEventListener('click', () => {
-  selecting = false;
+  toggleSelectionMode(false);
   drawingUserPoly = false;
   polyVerts = [];
   map.getSource('poly-draw').setData(EMPTY_FC());
   map.getCanvas().style.cursor = '';
-  document.getElementById('btn-select').classList.remove('active');
-  document.getElementById('btn-select-label').textContent = 'Selecionar quadrículas';
-  document.getElementById('sel-mode').classList.remove('visible');
   selectedMethod = null;
   syncMethodButtons();
   selected.clear();
@@ -1708,33 +1841,37 @@ function setUserPolyLoaded(loaded) {
   syncUI();
 }
 
-document.getElementById('btn-draw-user-poly').addEventListener('click', () => {
-  setSelectionMethod('btn-draw-user-poly');
-  selecting = false;
-  document.getElementById('btn-select').classList.remove('active');
-  document.getElementById('btn-select-label').textContent = 'Selecionar quadrículas';
-  document.getElementById('sel-mode').classList.remove('visible');
+document.getElementById('method-draw').addEventListener('change', (e) => {
+  if (!e.target.checked) {
+    if (drawingUserPoly) cancelPolyDraw();
+    if (selectedMethod === 'draw') selectedMethod = null;
+    syncMethodButtons();
+    return;
+  }
+  setSelectionMethod('draw');
+  document.getElementById('method-select').checked = false;
+  toggleSelectionMode(false);
   if (drawingUserPoly) {
     cancelPolyDraw();
     return;
   }
-  // Cancel any active selection draw
-  if (selecting && polyMode) cancelPolyDraw();
   drawingUserPoly = true;
   polyVerts = [];
   map.getSource('poly-draw').setData(EMPTY_FC());
   map.getCanvas().style.cursor = 'crosshair';
-  document.getElementById('btn-draw-user-poly').classList.add('active');
   showToast('Clique para adicionar v\u00e9rtices \u00b7 Duplo clique para fechar');
   syncUI();
 });
 
-document.getElementById('btn-upload-poly').addEventListener('click', () => {
-  setSelectionMethod('btn-upload-poly');
-  selecting = false;
-  document.getElementById('btn-select').classList.remove('active');
-  document.getElementById('btn-select-label').textContent = 'Selecionar quadrículas';
-  document.getElementById('sel-mode').classList.remove('visible');
+document.getElementById('method-upload').addEventListener('change', (e) => {
+  if (!e.target.checked) {
+    if (selectedMethod === 'upload') selectedMethod = null;
+    syncMethodButtons();
+    return;
+  }
+  setSelectionMethod('upload');
+  document.getElementById('method-select').checked = false;
+  toggleSelectionMode(false);
   document.getElementById('file-input-poly').click();
 });
 
