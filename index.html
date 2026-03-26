@@ -60,13 +60,17 @@
       color: #7a90a0;
       margin-bottom: 9px;
     }
+    .sub-toggle-group {
+      margin-left: 12px;
+      padding-left: 6px;
+      border-left: 1px solid rgba(26, 136, 238, 0.18);
+    }
     .sub-toggle {
-      padding-left: 18px;
       background: rgba(26, 136, 238, 0.06);
       border: 1px solid rgba(26, 136, 238, 0.18);
       border-radius: 2px;
       margin: 3px 0;
-      padding-right: 6px;
+      padding: 4px 6px 4px 0;
     }
     .option-group-label {
       font-size: 10px;
@@ -76,6 +80,12 @@
       margin: 8px 0 4px;
     }
     .sub-toggle-group.hidden { display: none; }
+    .toggle-row.is-disabled {
+      opacity: 0.42;
+    }
+    .toggle-row.is-disabled .toggle-label {
+      color: #9aabba;
+    }
 
     /* ── Buttons ────────────────────────────────────────────────────────── */
     .btn {
@@ -404,6 +414,10 @@
     .mode-btn.active {
       background: rgba(30,120,220,0.12);
       color: #1060cc;
+    }
+    .mode-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
   </style>
 </head>
@@ -1368,6 +1382,22 @@ function formatHa(ha) {
 }
 
 function syncUI() {
+  const methodsEnabled = Boolean(selectedRequirement);
+  document.querySelectorAll('.method-toggle').forEach(el => {
+    el.disabled = !methodsEnabled;
+    el.closest('.toggle-row')?.classList.toggle('is-disabled', !methodsEnabled);
+  });
+  document.querySelectorAll('.mode-btn').forEach(el => {
+    el.disabled = !methodsEnabled;
+  });
+
+  if (!methodsEnabled) {
+    if (drawingUserPoly) stopUserPolygonDrawing();
+    if (selecting) toggleSelectionMode(false);
+    selectedMethod = null;
+    syncMethodButtons();
+  }
+
   document.getElementById('btn-confirm').disabled = false;
   document.getElementById('s-area').textContent = formatHa(calcSelectedAreaHa());
 }
