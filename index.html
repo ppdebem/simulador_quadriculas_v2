@@ -67,6 +67,7 @@
       text-transform: uppercase;
       margin: 8px 0 4px;
     }
+    .sub-toggle-group.hidden { display: none; }
 
     /* ── Buttons ────────────────────────────────────────────────────────── */
     .btn {
@@ -394,36 +395,52 @@
 
   <div class="panel-section">
     <div class="section-title">Tipo de Requerimento</div>
-    <div class="option-group-label">Autorização de Pesquisa</div>
-    <div class="toggle-row sub-toggle">
-      <span class="toggle-label">Amazônia legal</span>
+    <div class="toggle-row">
+      <span class="toggle-label">Autorização de Pesquisa</span>
       <label class="toggle">
-        <input type="checkbox" class="req-toggle" id="req-ap-amz" data-max-ha="10000">
+        <input type="checkbox" class="req-main-toggle" id="req-main-ap">
         <span class="toggle-track"></span>
       </label>
     </div>
-    <div class="toggle-row sub-toggle">
-      <span class="toggle-label">Demais regiões</span>
-      <label class="toggle">
-        <input type="checkbox" class="req-toggle" id="req-ap-demais" data-max-ha="2000">
-        <span class="toggle-track"></span>
-      </label>
+    <div class="sub-toggle-group hidden" id="group-ap-sub">
+      <div class="toggle-row sub-toggle">
+        <span class="toggle-label">Amazônia legal</span>
+        <label class="toggle">
+          <input type="checkbox" class="req-toggle" id="req-ap-amz" data-max-ha="10000" data-group="ap">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="toggle-row sub-toggle">
+        <span class="toggle-label">Demais regiões</span>
+        <label class="toggle">
+          <input type="checkbox" class="req-toggle" id="req-ap-demais" data-max-ha="2000" data-group="ap">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
     </div>
 
-    <div class="option-group-label">Lavra Garimpeira</div>
-    <div class="toggle-row sub-toggle">
-      <span class="toggle-label">Pessoa física</span>
+    <div class="toggle-row">
+      <span class="toggle-label">Lavra Garimpeira</span>
       <label class="toggle">
-        <input type="checkbox" class="req-toggle" id="req-lg-pf" data-max-ha="50">
+        <input type="checkbox" class="req-main-toggle" id="req-main-lg">
         <span class="toggle-track"></span>
       </label>
     </div>
-    <div class="toggle-row sub-toggle">
-      <span class="toggle-label">Cooperativa de garimpeiros</span>
-      <label class="toggle">
-        <input type="checkbox" class="req-toggle" id="req-lg-coop" data-max-ha="1000">
-        <span class="toggle-track"></span>
-      </label>
+    <div class="sub-toggle-group hidden" id="group-lg-sub">
+      <div class="toggle-row sub-toggle">
+        <span class="toggle-label">Pessoa física</span>
+        <label class="toggle">
+          <input type="checkbox" class="req-toggle" id="req-lg-pf" data-max-ha="50" data-group="lg">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="toggle-row sub-toggle">
+        <span class="toggle-label">Cooperativa de garimpeiros</span>
+        <label class="toggle">
+          <input type="checkbox" class="req-toggle" id="req-lg-coop" data-max-ha="1000" data-group="lg">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
     </div>
 
     <div class="toggle-row">
@@ -1588,9 +1605,52 @@ document.querySelectorAll('.req-toggle').forEach(tg => {
       document.querySelectorAll('.req-toggle').forEach(other => {
         if (other !== tg) other.checked = false;
       });
+      const group = tg.dataset.group;
+      if (group === 'ap') {
+        document.getElementById('req-main-ap').checked = true;
+        document.getElementById('group-ap-sub').classList.remove('hidden');
+        document.getElementById('req-main-lg').checked = false;
+        document.getElementById('group-lg-sub').classList.add('hidden');
+        document.querySelectorAll('.req-toggle[data-group=\"lg\"]').forEach(el => { el.checked = false; });
+      }
+      if (group === 'lg') {
+        document.getElementById('req-main-lg').checked = true;
+        document.getElementById('group-lg-sub').classList.remove('hidden');
+        document.getElementById('req-main-ap').checked = false;
+        document.getElementById('group-ap-sub').classList.add('hidden');
+        document.querySelectorAll('.req-toggle[data-group=\"ap\"]').forEach(el => { el.checked = false; });
+      }
       selectedRequirement = tg;
     } else {
       selectedRequirement = null;
+    }
+    syncUI();
+  });
+});
+
+document.querySelectorAll('.req-main-toggle').forEach(main => {
+  main.addEventListener('change', () => {
+    const isAP = main.id === 'req-main-ap';
+    const thisGroupId = isAP ? 'group-ap-sub' : 'group-lg-sub';
+    const otherMainId = isAP ? 'req-main-lg' : 'req-main-ap';
+    const otherGroupId = isAP ? 'group-lg-sub' : 'group-ap-sub';
+    const thisSubSelector = isAP ? '.req-toggle[data-group=\"ap\"]' : '.req-toggle[data-group=\"lg\"]';
+    const otherSubSelector = isAP ? '.req-toggle[data-group=\"lg\"]' : '.req-toggle[data-group=\"ap\"]';
+
+    if (main.checked) {
+      document.getElementById(thisGroupId).classList.remove('hidden');
+      document.getElementById(otherMainId).checked = false;
+      document.getElementById(otherGroupId).classList.add('hidden');
+      document.querySelectorAll(otherSubSelector).forEach(el => { el.checked = false; });
+      if (selectedRequirement && selectedRequirement.matches(otherSubSelector)) {
+        selectedRequirement = null;
+      }
+    } else {
+      document.getElementById(thisGroupId).classList.add('hidden');
+      document.querySelectorAll(thisSubSelector).forEach(el => { el.checked = false; });
+      if (selectedRequirement && selectedRequirement.matches(thisSubSelector)) {
+        selectedRequirement = null;
+      }
     }
     syncUI();
   });
