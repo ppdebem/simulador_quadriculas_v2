@@ -42,6 +42,31 @@
       margin-bottom: 14px;
       border-bottom: 1px solid rgba(0,0,0,0.1);
     }
+    .panel-section {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(0,0,0,0.08);
+    }
+    .panel-section:first-of-type {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+    }
+    .section-title {
+      font-size: 9px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #7a90a0;
+      margin-bottom: 9px;
+    }
+    .sub-toggle { padding-left: 18px; }
+    .option-group-label {
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: #4c6378;
+      text-transform: uppercase;
+      margin: 8px 0 4px;
+    }
 
     /* ── Buttons ────────────────────────────────────────────────────────── */
     .btn {
@@ -91,11 +116,6 @@
     }
 
     /* ── Stats ──────────────────────────────────────────────────────────── */
-    #stats {
-      margin-top: 14px;
-      padding-top: 12px;
-      border-top: 1px solid rgba(0,0,0,0.08);
-    }
     .stat-row {
       display: flex;
       justify-content: space-between;
@@ -372,50 +392,99 @@
 <div id="panel">
   <div id="panel-title">Simulador de Quadrículas v2</div>
 
-  <button class="btn" id="btn-select">
-    <span class="indicator"></span>
-    <span id="btn-select-label">Selecionar quadrículas</span>
-  </button>
+  <div class="panel-section">
+    <div class="section-title">Tipo de Requerimento</div>
+    <div class="option-group-label">Autorização de Pesquisa</div>
+    <div class="toggle-row sub-toggle">
+      <span class="toggle-label">Amazônia legal</span>
+      <label class="toggle">
+        <input type="checkbox" class="req-toggle" id="req-ap-amz" data-max-ha="10000">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+    <div class="toggle-row sub-toggle">
+      <span class="toggle-label">Demais regiões</span>
+      <label class="toggle">
+        <input type="checkbox" class="req-toggle" id="req-ap-demais" data-max-ha="2000">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
 
-  <div id="sel-mode">
-    <button class="mode-btn active" id="mode-click">Clique</button>
-    <button class="mode-btn"        id="mode-rect">Retângulo</button>
-    <button class="mode-btn"        id="mode-poly">Polígono</button>
+    <div class="option-group-label">Lavra Garimpeira</div>
+    <div class="toggle-row sub-toggle">
+      <span class="toggle-label">Pessoa física</span>
+      <label class="toggle">
+        <input type="checkbox" class="req-toggle" id="req-lg-pf" data-max-ha="50">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+    <div class="toggle-row sub-toggle">
+      <span class="toggle-label">Cooperativa de garimpeiros</span>
+      <label class="toggle">
+        <input type="checkbox" class="req-toggle" id="req-lg-coop" data-max-ha="1000">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">Registro de Extração</span>
+      <label class="toggle">
+        <input type="checkbox" class="req-toggle" id="req-re" data-max-ha="50">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Registro de Licenciamento</span>
+      <label class="toggle">
+        <input type="checkbox" class="req-toggle" id="req-rl" data-max-ha="5">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
   </div>
 
-  <button class="btn" id="btn-merge" disabled>
-    <span class="indicator"></span>
-    Consolidar Seleção
-  </button>
+  <div class="panel-section">
+    <div class="section-title">Método de Seleção</div>
+    <div class="toggle-row">
+      <span class="toggle-label">Desenhar polígono</span>
+      <label class="toggle">
+        <input type="checkbox" class="method-toggle" id="method-draw">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Upload de poligonal</span>
+      <label class="toggle">
+        <input type="checkbox" class="method-toggle" id="method-upload">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label"><span id="btn-select-label">Selecionar quadrículas</span></span>
+      <label class="toggle">
+        <input type="checkbox" class="method-toggle" id="method-select">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
 
-  <button class="btn" id="btn-clear">
-    <span class="indicator"></span>
-    Limpar
-  </button>
+    <div id="sel-mode">
+      <button class="mode-btn active" id="mode-click">Clique</button>
+      <button class="mode-btn"        id="mode-rect">Retângulo</button>
+      <button class="mode-btn"        id="mode-poly">Polígono</button>
+    </div>
 
-  <div class="toggle-row" style="margin-top:8px; padding: 0 2px;">
-    <span class="stat-label">Verificar restrições</span>
-    <label class="toggle">
-      <input type="checkbox" id="tog-check-restricoes" checked>
-      <span class="toggle-track"></span>
-    </label>
+    <button class="btn" id="btn-clear">
+      <span class="indicator"></span>Limpar
+    </button>
+    <button class="btn" id="btn-confirm" disabled>
+      <span class="indicator"></span>Confirmar
+    </button>
+    <input type="file" id="file-input-poly" accept=".geojson,.json,.csv,application/geo+json,application/json,text/csv" style="display:none">
   </div>
 
-  <div id="stats">
+  <div class="panel-section" id="stats">
+    <div class="section-title">Resultado</div>
     <div class="stat-row">
-      <span class="stat-label">Zoom</span>
-      <span class="stat-value" id="s-zoom">—</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Quadrícula</span>
-      <span class="stat-value" id="s-grid">—</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Área Quadrícula</span>
-      <span class="stat-value" id="s-cell-area">—</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Área selecionada</span>
+      <span class="stat-label">Área solicitada</span>
       <span class="stat-value highlight" id="s-area">0 ha</span>
     </div>
     <div class="stat-row">
@@ -423,49 +492,20 @@
       <span class="stat-value highlight" id="s-area-clean">—</span>
     </div>
     <div class="stat-row">
-      <span class="stat-label" style="color:#e05050">Restrição total</span>
-      <span class="stat-value" id="s-total">—</span>
-    </div>
-    <div class="stat-row">
       <span class="stat-label" style="color:#d07020">Restrição parcial</span>
       <span class="stat-value" id="s-parcial">—</span>
     </div>
-  </div>
+    <div class="stat-row">
+      <span class="stat-label" style="color:#e05050">Restrição total</span>
+      <span class="stat-value" id="s-total">—</span>
+    </div>
 
-  <div id="export-btns" style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(0,0,0,0.08);">
     <button class="btn" id="btn-report" disabled>
-      <span class="indicator"></span>
-      Gerar Relatório
+      <span class="indicator"></span>Gerar Relatório
     </button>
     <button class="btn" id="btn-geojson" disabled>
-      <span class="indicator"></span>
-      Exportar GeoJSON
+      <span class="indicator"></span>Exportar GeoJSON
     </button>
-  </div>
-
-  <div id="user-poly-section" style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(0,0,0,0.08);">
-    <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#7a90a0;margin-bottom:9px;">Polígono do usuário</div>
-    <button class="btn" id="btn-draw-user-poly">
-      <span class="indicator"></span>
-      Desenhar polígono
-    </button>
-    <button class="btn" id="btn-upload-poly">
-      <span class="indicator"></span>
-      Carregar GeoJSON
-    </button>
-    <button class="btn" id="btn-transform-poly" disabled>
-      <span class="indicator"></span>
-      Selecionar área completa
-    </button>
-    <button class="btn" id="btn-adesao-poly" disabled>
-      <span class="indicator"></span>
-      Selecionar área mínima
-    </button>
-    <button class="btn" id="btn-clear-poly" disabled>
-      <span class="indicator"></span>
-      Remover polígono
-    </button>
-    <input type="file" id="file-input-poly" accept=".geojson,application/geo+json,application/json" style="display:none">
   </div>
 </div>
 
@@ -779,6 +819,8 @@ let lastMergedTotal   = null;
 // User-uploaded polygon
 let userPolyFeature  = null;
 let drawingUserPoly  = false;  // true while user is drawing their own poly
+let selectedRequirement = null;
+let selectedMethod = null;
 
 // Color palette for tipos (assigned dynamically)
 const TIPO_PALETTE = [
@@ -1158,7 +1200,7 @@ map.on('load', () => {
     if (drawingUserPoly) {
       drawingUserPoly = false;
       map.getCanvas().style.cursor = '';
-      document.getElementById('btn-draw-user-poly').classList.remove('active');
+      syncMethodButtons();
     }
   }
 
@@ -1172,7 +1214,7 @@ map.on('load', () => {
       // Set as user polygon instead of selecting cells
       drawingUserPoly = false;
       map.getCanvas().style.cursor = '';
-      document.getElementById('btn-draw-user-poly').classList.remove('active');
+      syncMethodButtons();
       polyVerts = [];
       map.getSource('poly-draw').setData(EMPTY_FC());
       map.dragPan.enable();
@@ -1260,28 +1302,12 @@ function redrawGrid() {
 
   if (zoom < 1) {
     map.getSource('grid').setData(EMPTY_FC());
-    document.getElementById('s-zoom').textContent      = zoom.toFixed(1);
-    document.getElementById('s-grid').textContent      = '—';
-    document.getElementById('s-cell-area').textContent = '—';
     return;
   }
   const level = getLevel(zoom);
   const fc = generateGrid(map, level);
 
   map.getSource('grid').setData(fc);
-
-  // Sample cell area at viewport center latitude (area varies with latitude)
-  const center = map.getCenter();
-  const size = level.arcsec / 3600;
-  const r = (n) => Math.round(n * 1e8) / 1e8;
-  const cx = r(Math.floor(center.lng / size) * size);
-  const cy = r(Math.floor(center.lat / size) * size);
-  const sampleCell = turf.polygon([[[cx,cy],[cx+size,cy],[cx+size,cy+size],[cx,cy+size],[cx,cy]]]);
-  const cellAreaHa = turf.area(sampleCell) / 10000;
-
-  document.getElementById('s-zoom').textContent      = zoom.toFixed(1);
-  document.getElementById('s-grid').textContent      = level.label;
-  document.getElementById('s-cell-area').textContent = formatHa(cellAreaHa);
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1301,15 +1327,32 @@ function calcSelectedAreaHa() {
 
 function formatHa(ha) {
   if (ha === 0) return '0 ha';
-  if (ha >= 1000) return `${(ha / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil ha`;
-  if (ha >= 1000)  return `${ha.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} ha`;
+  if (ha >= 1000) return `${ha.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} ha`;
   return `${ha.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} ha`;
 }
 
 function syncUI() {
   const n = selected.size;
-  document.getElementById('btn-merge').disabled = n < 1;
+  const hasManualSelection = n > 0;
+  const hasUserPoly = Boolean(userPolyFeature);
+  document.getElementById('btn-confirm').disabled = !selectedRequirement || (!hasManualSelection && !hasUserPoly);
   document.getElementById('s-area').textContent = formatHa(calcSelectedAreaHa());
+}
+
+function syncMethodButtons() {
+  const mapIds = { draw: 'method-draw', upload: 'method-upload', select: 'method-select' };
+  Object.values(mapIds).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = false;
+  });
+  if (selectedMethod && mapIds[selectedMethod]) {
+    document.getElementById(mapIds[selectedMethod]).checked = true;
+  }
+}
+
+function setSelectionMethod(methodId) {
+  selectedMethod = methodId;
+  syncMethodButtons();
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1411,18 +1454,8 @@ function mergeCells() {
   showToast('Processando…');
 
   setTimeout(() => {
-    const checkRestricoes = document.getElementById('tog-check-restricoes').checked;
-
     let clean, parcial, total;
-    if (checkRestricoes) {
-      ({ clean, parcial, total } = classifyCells());
-    } else {
-      // No restriction check — union the original selected cells directly,
-      // no need to expand to 1-arcsecond sub-cells
-      clean   = new Set(selected);
-      parcial = new Set();
-      total   = new Set();
-    }
+    ({ clean, parcial, total } = classifyCells());
 
     const mergedClean   = unionGroup(clean);
     const mergedParcial = unionGroup(parcial);
@@ -1447,10 +1480,8 @@ function mergeCells() {
     });
 
     // Exit selection mode
-    selecting = false;
-    document.getElementById('btn-select').classList.remove('active');
-    document.getElementById('btn-select-label').textContent = 'Selecionar quadrículas';
-    document.getElementById('sel-mode').classList.remove('visible');
+    toggleSelectionMode(false);
+    document.getElementById('method-select').checked = false;
     map.getCanvas().style.cursor = '';
     polyVerts = [];
     map.getSource('poly-draw').setData(EMPTY_FC());
@@ -1487,34 +1518,42 @@ function mergeCells() {
 // ──────────────────────────────────────────────────────────────────────────────
 // Button wiring
 // ──────────────────────────────────────────────────────────────────────────────
-document.getElementById('btn-select').addEventListener('click', () => {
-  selecting = !selecting;
-  const btn   = document.getElementById('btn-select');
+function toggleSelectionMode(enabled) {
   const label = document.getElementById('btn-select-label');
   const modeBar = document.getElementById('sel-mode');
-
-  if (selecting) {
-    btn.classList.add('active');
+  selecting = enabled;
+  if (enabled) {
+    setSelectionMethod('select');
     label.textContent = 'Parar seleção';
     modeBar.classList.add('visible');
     map.getCanvas().style.cursor = 'crosshair';
     if (polyMode) showToast('Clique para adicionar vértices · Duplo clique para fechar');
     else showToast(rectMode ? 'Arraste para selecionar área' : 'Clique nas quadrículas para selecionar');
   } else {
-    btn.classList.remove('active');
     label.textContent = 'Selecionar quadrículas';
     modeBar.classList.remove('visible');
     map.getCanvas().style.cursor = '';
     map.dragPan.enable();
     document.getElementById('rect-band').style.display = 'none';
     rectStart = null;
-    // Cancel any in-progress polygon draw
     polyVerts = [];
     if (map.getSource('poly-draw')) map.getSource('poly-draw').setData(EMPTY_FC());
     if (hoveredNumId !== null) {
       map.setFeatureState({ source: 'grid', id: hoveredNumId }, { hover: false });
       hoveredNumId = null;
     }
+  }
+  syncUI();
+}
+
+document.getElementById('method-select').addEventListener('change', (e) => {
+  if (e.target.checked) {
+    setSelectionMethod('select');
+    toggleSelectionMode(true);
+  } else {
+    toggleSelectionMode(false);
+    selectedMethod = null;
+    syncMethodButtons();
   }
 });
 
@@ -1543,6 +1582,20 @@ document.getElementById('mode-poly').addEventListener('click', () => {
   if (selecting) showToast('Clique para adicionar vértices · Duplo clique para fechar');
 });
 
+document.querySelectorAll('.req-toggle').forEach(tg => {
+  tg.addEventListener('change', () => {
+    if (tg.checked) {
+      document.querySelectorAll('.req-toggle').forEach(other => {
+        if (other !== tg) other.checked = false;
+      });
+      selectedRequirement = tg;
+    } else {
+      selectedRequirement = null;
+    }
+    syncUI();
+  });
+});
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Confirmation modal
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1567,10 +1620,71 @@ function showModal(msg, onConfirm) {
   no.addEventListener('click',  onNo);
 }
 
-document.getElementById('btn-merge').addEventListener('click', () => {
-  const checkRestricoes = document.getElementById('tog-check-restricoes').checked;
+function getMaxAreaHa() {
+  return selectedRequirement ? Number(selectedRequirement.dataset.maxHa) : null;
+}
+
+function enforceRequirementLimit() {
+  const maxHa = getMaxAreaHa();
+  if (!maxHa) return true;
+  const currentHa = calcSelectedAreaHa();
+  if (currentHa > maxHa) {
+    showToast(`Área solicitada (${formatHa(currentHa)}) excede o limite (${formatHa(maxHa)})`);
+    return false;
+  }
+  return true;
+}
+
+function convertUserPolygonToSelectedCells() {
+  if (!userPolyFeature) return;
+
+  selected.clear();
+  const bbox = turf.bbox(userPolyFeature);
+  const size = 1 / 3600;
+  const r    = (n) => Math.round(n * 1e8) / 1e8;
+
+  const liStart   = Math.floor(bbox[0] / size);
+  const liEnd     = Math.ceil(bbox[2]  / size);
+  const latiStart = Math.floor(bbox[1] / size);
+  const latiEnd   = Math.ceil(bbox[3]  / size);
+
+  for (let li = liStart; li < liEnd; li++) {
+    for (let lati = latiStart; lati < latiEnd; lati++) {
+      const x0 = r(li * size),       y0 = r(lati * size);
+      const x1 = r((li + 1) * size), y1 = r((lati + 1) * size);
+      if (x1 > 180.001 || x0 < -180.001) continue;
+      if (y1 >  90.001 || y0 <  -90.001) continue;
+
+      const cell = turf.polygon([[[x0,y0],[x1,y0],[x1,y1],[x0,y1],[x0,y0]]]);
+      if (turf.booleanIntersects(cell, userPolyFeature)) {
+        selected.add(makeCellId(li, lati, 1));
+      }
+    }
+  }
+  syncSelectedSource();
+  syncUI();
+}
+
+document.getElementById('btn-confirm').addEventListener('click', () => {
+  if (!selectedRequirement) {
+    showToast('Selecione um tipo de requerimento');
+    return;
+  }
+
+  if (userPolyFeature && selectedMethod !== 'select') {
+    showToast('Selecionando quadrículas em 1 segundo de arco…');
+    convertUserPolygonToSelectedCells();
+  }
+
+  if (!selected.size) {
+    showToast('Nenhuma quadrícula selecionada');
+    return;
+  }
+
+  if (!enforceRequirementLimit()) return;
+
   const ha = calcSelectedAreaHa();
-  if (checkRestricoes && ha > AREA_WARNING_HA) {
+  if (ha > AREA_WARNING_HA) {
     showModal(
       `Você selecionou uma área muito grande e o processamento pode demorar (<strong>${formatHa(ha)}</strong>). Tem certeza que quer prosseguir?`,
       mergeCells
@@ -1581,8 +1695,18 @@ document.getElementById('btn-merge').addEventListener('click', () => {
 });
 
 document.getElementById('btn-clear').addEventListener('click', () => {
+  toggleSelectionMode(false);
+  drawingUserPoly = false;
+  polyVerts = [];
+  map.getSource('poly-draw').setData(EMPTY_FC());
+  map.getCanvas().style.cursor = '';
+  selectedMethod = null;
+  syncMethodButtons();
   selected.clear();
   syncSelectedSource();
+  userPolyFeature = null;
+  map.getSource('user-poly').setData(EMPTY_FC());
+  setUserPolyLoaded(false);
   map.getSource('merged').setData(EMPTY_FC());
   map.getSource('restricao-total').setData(EMPTY_FC());
   map.getSource('restricao-parcial').setData(EMPTY_FC());
@@ -1594,6 +1718,7 @@ document.getElementById('btn-clear').addEventListener('click', () => {
   lastMergedClean = lastMergedParcial = lastMergedTotal = null;
   document.getElementById('btn-report').disabled  = true;
   document.getElementById('btn-geojson').disabled = true;
+  document.getElementById('btn-confirm').disabled = !selectedRequirement;
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1635,29 +1760,42 @@ document.getElementById('tog-user-poly').addEventListener('change', (e) => {
 // User polygon upload & transform
 // ──────────────────────────────────────────────────────────────────────────────
 function setUserPolyLoaded(loaded) {
-  document.getElementById('btn-transform-poly').disabled = !loaded;
-  document.getElementById('btn-adesao-poly').disabled    = !loaded;
-  document.getElementById('btn-clear-poly').disabled     = !loaded;
   document.getElementById('legend-user-poly-row').style.display = loaded ? '' : 'none';
   document.getElementById('legend-user-poly').style.display     = loaded ? '' : 'none';
+  syncUI();
 }
 
-document.getElementById('btn-draw-user-poly').addEventListener('click', () => {
+document.getElementById('method-draw').addEventListener('change', (e) => {
+  if (!e.target.checked) {
+    if (drawingUserPoly) cancelPolyDraw();
+    if (selectedMethod === 'draw') selectedMethod = null;
+    syncMethodButtons();
+    return;
+  }
+  setSelectionMethod('draw');
+  document.getElementById('method-select').checked = false;
+  toggleSelectionMode(false);
   if (drawingUserPoly) {
     cancelPolyDraw();
     return;
   }
-  // Cancel any active selection draw
-  if (selecting && polyMode) cancelPolyDraw();
   drawingUserPoly = true;
   polyVerts = [];
   map.getSource('poly-draw').setData(EMPTY_FC());
   map.getCanvas().style.cursor = 'crosshair';
-  document.getElementById('btn-draw-user-poly').classList.add('active');
   showToast('Clique para adicionar v\u00e9rtices \u00b7 Duplo clique para fechar');
+  syncUI();
 });
 
-document.getElementById('btn-upload-poly').addEventListener('click', () => {
+document.getElementById('method-upload').addEventListener('change', (e) => {
+  if (!e.target.checked) {
+    if (selectedMethod === 'upload') selectedMethod = null;
+    syncMethodButtons();
+    return;
+  }
+  setSelectionMethod('upload');
+  document.getElementById('method-select').checked = false;
+  toggleSelectionMode(false);
   document.getElementById('file-input-poly').click();
 });
 
@@ -1669,12 +1807,44 @@ document.getElementById('file-input-poly').addEventListener('change', (e) => {
 
   const reader = new FileReader();
   reader.onload = (ev) => {
+    const text = ev.target.result;
+    const lowerName = file.name.toLowerCase();
     let geojson;
-    try {
-      geojson = JSON.parse(ev.target.result);
-    } catch (_) {
-      showToast('Erro: arquivo JSON inválido');
-      return;
+    if (lowerName.endsWith('.csv')) {
+      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      if (lines.length < 3) {
+        showToast('CSV precisa ter ao menos 3 pontos');
+        return;
+      }
+      const sep = lines[0].includes(';') ? ';' : ',';
+      const parseLine = (line) => line.split(sep).map(p => p.trim());
+      const header = parseLine(lines[0]).map(h => h.toLowerCase());
+      const lonIdx = header.findIndex(h => ['lon', 'lng', 'longitude', 'x'].includes(h));
+      const latIdx = header.findIndex(h => ['lat', 'latitude', 'y'].includes(h));
+      const startAt = lonIdx >= 0 && latIdx >= 0 ? 1 : 0;
+      const points = [];
+      for (let i = startAt; i < lines.length; i++) {
+        const parts = parseLine(lines[i]);
+        const lon = Number(parts[lonIdx >= 0 ? lonIdx : 0]);
+        const lat = Number(parts[latIdx >= 0 ? latIdx : 1]);
+        if (!Number.isFinite(lon) || !Number.isFinite(lat)) continue;
+        points.push([lon, lat]);
+      }
+      if (points.length < 3) {
+        showToast('CSV inválido: forneça colunas lon/lat');
+        return;
+      }
+      const first = points[0];
+      const last = points[points.length - 1];
+      if (first[0] !== last[0] || first[1] !== last[1]) points.push(first);
+      geojson = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [points] }, properties: {} };
+    } else {
+      try {
+        geojson = JSON.parse(text);
+      } catch (_) {
+        showToast('Erro: arquivo inválido (use GeoJSON/JSON/CSV)');
+        return;
+      }
     }
 
     // Accept FeatureCollection with one feature, or a bare Feature
@@ -1719,112 +1889,6 @@ document.getElementById('file-input-poly').addEventListener('change', (e) => {
   reader.readAsText(file);
 });
 
-document.getElementById('btn-transform-poly').addEventListener('click', () => {
-  if (!userPolyFeature) return;
-
-  const ha = turf.area(userPolyFeature) / 10000;
-  const checkRestricoes = document.getElementById('tog-check-restricoes').checked;
-  if (checkRestricoes && ha > AREA_WARNING_HA) {
-    showModal(
-      'Você selecionou uma área muito grande e o processamento pode demorar (<strong>' + formatHa(ha) + '<\/strong>). Tem certeza que quer prosseguir?',
-      doTransformPoly
-    );
-  } else {
-    doTransformPoly();
-  }
-});
-
-function doTransformPoly() {
-  selected.clear();
-  showToast('Transformando polígono…');
-  setTimeout(() => {
-    const bbox = turf.bbox(userPolyFeature);
-    const size = 1 / 3600;
-    const r    = (n) => Math.round(n * 1e8) / 1e8;
-
-    const liStart   = Math.floor(bbox[0] / size);
-    const liEnd     = Math.ceil(bbox[2]  / size);
-    const latiStart = Math.floor(bbox[1] / size);
-    const latiEnd   = Math.ceil(bbox[3]  / size);
-
-    let count = 0;
-    for (let li = liStart; li < liEnd; li++) {
-      for (let lati = latiStart; lati < latiEnd; lati++) {
-        const x0 = r(li * size),       y0 = r(lati * size);
-        const x1 = r((li + 1) * size), y1 = r((lati + 1) * size);
-        if (x1 > 180.001 || x0 < -180.001) continue;
-        if (y1 >  90.001 || y0 <  -90.001) continue;
-
-        const cell = turf.polygon([[[x0,y0],[x1,y0],[x1,y1],[x0,y1],[x0,y0]]]);
-        if (turf.booleanIntersects(cell, userPolyFeature)) {
-          selected.add(makeCellId(li, lati, 1));
-          count++;
-        }
-      }
-    }
-
-    syncSelectedSource();
-    syncUI();
-    showToast(count + ' quadrículas selecionadas');
-  }, 30);
-}
-
-document.getElementById('btn-adesao-poly').addEventListener('click', () => {
-  if (!userPolyFeature) return;
-
-  const ha = turf.area(userPolyFeature) / 10000;
-  const checkRestricoes = document.getElementById('tog-check-restricoes').checked;
-  if (checkRestricoes && ha > AREA_WARNING_HA) {
-    showModal(
-      'Você selecionou uma área muito grande e o processamento pode demorar (<strong>' + formatHa(ha) + '<\/strong>). Tem certeza que quer prosseguir?',
-      doAdesaoPoly
-    );
-  } else {
-    doAdesaoPoly();
-  }
-});
-
-function doAdesaoPoly() {
-  selected.clear();
-  showToast('Simulando ades\u00e3o…');
-  setTimeout(() => {
-    const bbox = turf.bbox(userPolyFeature);
-    const size = 1 / 3600;
-    const r    = (n) => Math.round(n * 1e8) / 1e8;
-
-    const liStart   = Math.floor(bbox[0] / size);
-    const liEnd     = Math.ceil(bbox[2]  / size);
-    const latiStart = Math.floor(bbox[1] / size);
-    const latiEnd   = Math.ceil(bbox[3]  / size);
-
-    let count = 0;
-    for (let li = liStart; li < liEnd; li++) {
-      for (let lati = latiStart; lati < latiEnd; lati++) {
-        const x0 = r(li * size),       y0 = r(lati * size);
-        const x1 = r((li + 1) * size), y1 = r((lati + 1) * size);
-        if (x1 > 180.001 || x0 < -180.001) continue;
-        if (y1 >  90.001 || y0 <  -90.001) continue;
-
-        const cell = turf.polygon([[[x0,y0],[x1,y0],[x1,y1],[x0,y1],[x0,y0]]]);
-        // Only fully contained cells
-        if (turf.booleanContains(userPolyFeature, cell)) {
-          selected.add(makeCellId(li, lati, 1));
-          count++;
-        }
-      }
-    }
-
-    syncSelectedSource();
-    syncUI();
-    showToast(count + ' quadr\u00edculas selecionadas (ades\u00e3o)');
-  }, 30);
-}
-
-document.getElementById('btn-clear-poly').addEventListener('click', () => {
-  userPolyFeature = null;
-  map.getSource('user-poly').setData(EMPTY_FC());
-  setUserPolyLoaded(false);
-});
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Legend — tipos (built dynamically after GeoJSON load)
@@ -1906,6 +1970,18 @@ function extractRings(geojsonFeature) {
   return rings;
 }
 
+function decimalToDMS(value, axis) {
+  const abs = Math.abs(value);
+  const deg = Math.floor(abs);
+  const minFloat = (abs - deg) * 60;
+  const min = Math.floor(minFloat);
+  const sec = ((minFloat - min) * 60).toFixed(2);
+  const dir = axis === 'lat'
+    ? (value >= 0 ? 'N' : 'S')
+    : (value >= 0 ? 'E' : 'W');
+  return `${deg}°${min}'${sec}" ${dir}`;
+}
+
 function buildReportHTML() {
   const sections = [
     { title: 'Área livre',        color: '#0aafb5', feature: lastMergedClean   },
@@ -1937,9 +2013,9 @@ function buildReportHTML() {
     body += '<h2 style="background:' + s.color + '">' + s.title + ' \u2014 ' + formatHa(areaHa) + C+'h2>';
     extractRings(s.feature).forEach(function(ring) {
       body += '<h3>' + ring.label + ' (' + ring.coords.length + ' v\u00e9rtices)' + C + 'h3>'
-            + '<table><thead><tr><th>#<\/th><th>Longitude<\/th><th>Latitude<\/th><\/tr><\/thead><tbody>';
+            + '<table><thead><tr><th>#<\/th><th>Longitude (DMS)<\/th><th>Latitude (DMS)<\/th><\/tr><\/thead><tbody>';
       ring.coords.forEach(function(c, i) {
-        body += '<tr><td>' + (i+1) + '<\/td><td>' + c[0].toFixed(8) + '<\/td><td>' + c[1].toFixed(8) + '<\/td><\/tr>';
+        body += '<tr><td>' + (i+1) + '<\/td><td>' + decimalToDMS(c[0], 'lon') + '<\/td><td>' + decimalToDMS(c[1], 'lat') + '<\/td><\/tr>';
       });
       body += C+'tbody>'+C+'table>';
     });
@@ -1979,6 +2055,8 @@ function showToast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
 }
+
+syncUI();
 </script>
 </body>
 </html>
