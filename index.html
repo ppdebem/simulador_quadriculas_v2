@@ -990,6 +990,14 @@ let drawingUserPoly  = false;  // true while user is drawing their own poly
 let selectedRequirement = null;
 let selectedMethod = null;
 
+function bringGridLayersToFront() {
+  ['grid-hit','grid-lines','grid-hover','sel-fill','sel-outline',
+   'user-poly-fill','user-poly-outline',
+   'poly-draw-fill','poly-draw-line','poly-draw-verts'].forEach(id => {
+    if (map.getLayer(id)) map.moveLayer(id);
+  });
+}
+
 // Color palette for tipos (assigned dynamically)
 const TIPO_PALETTE = [
   '#0022ff','#ff0040','#ffe119','#02b62f','#0e5a00',
@@ -1168,6 +1176,8 @@ map.on('load', () => {
     source: 'restricao-parcial',
     paint: { 'line-color': 'rgba(240,150,30,0.95)', 'line-width': 2, 'line-dasharray': [4,2] }
   });
+
+  bringGridLayersToFront();
 
   // Load dados.geojson
   fetch('data/dados.geojson')
@@ -2197,6 +2207,7 @@ function buildLegendTipos() {
 
   // Hide the generic dados-fill/outline now that per-tipo layers exist
   setLayersVisibility(DADOS_LAYERS, false);
+  bringGridLayersToFront();
 }
 
 // Legend collapse toggle
