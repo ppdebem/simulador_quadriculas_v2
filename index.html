@@ -299,6 +299,75 @@
       padding: 10px 14px 12px;
     }
     #legend-body.hidden { display: none; }
+
+    /* ── Info — Restrições panel ────────────────────────────────────────── */
+    #info-rest {
+      position: absolute;
+      top: 16px;
+      right: 284px; /* 52px (nav controls) + 220px (legend) + 12px gap */
+      width: 220px;
+      background: rgba(255,255,255,0.96);
+      border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 3px;
+      z-index: 99;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      overflow: hidden;
+      /* Will be pushed down by JS after legend renders */
+    }
+    #info-rest-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    #info-rest-title {
+      font-size: 9px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #2a6090;
+    }
+    #info-rest-icon {
+      font-size: 10px;
+      color: #7a90a0;
+      transition: transform 0.2s;
+    }
+    #info-rest-icon.open { transform: rotate(0deg); }
+    #info-rest-body {
+      display: none;
+      padding: 10px 14px 12px;
+      max-height: 60vh;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0,0,0,0.12) transparent;
+    }
+    #info-rest-body.open { display: block; }
+    .ir-group-title {
+      font-size: 8px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      font-weight: bold;
+      padding: 5px 0 4px;
+      margin-top: 8px;
+      border-bottom: 1px solid rgba(0,0,0,0.07);
+    }
+    .ir-group-title:first-child { margin-top: 2px; }
+    .ir-group-title.prioritaria { color: #2a70b8; }
+    .ir-group-title.integral    { color: #c03030; }
+    .ir-group-title.parcial     { color: #c07010; }
+    .ir-item {
+      font-size: 10px;
+      letter-spacing: 0.5px;
+      color: #3a5060;
+      padding: 3px 0 3px 10px;
+      border-left: 2px solid transparent;
+      line-height: 1.3;
+    }
+    .ir-item.prioritaria { border-left-color: rgba(42,112,184,0.35); }
+    .ir-item.integral    { border-left-color: rgba(192,48,48,0.35); }
+    .ir-item.parcial     { border-left-color: rgba(192,112,16,0.35); }
     .legend-section-title {
       font-size: 8px;
       letter-spacing: 3px;
@@ -634,7 +703,7 @@
       </label>
     </div>
 
-    <div class="legend-section-title">Dados — tipo</div>
+    <div class="legend-section-title">Tipo</div>
     <div id="legend-tipos">
       <!-- populated dynamically after dados.geojson loads -->
     </div>
@@ -652,6 +721,47 @@
         </label>
       </div>
     </div>
+
+  </div>
+</div>
+
+<div id="info-rest">
+  <div id="info-rest-header">
+    <span id="info-rest-title">Info — Restrições</span>
+    <span id="info-rest-icon">▶</span>
+  </div>
+  <div id="info-rest-body">
+
+    <div class="ir-group-title prioritaria">Áreas Prioritárias</div>
+    <div class="ir-item prioritaria">Processos Ativos</div>
+    <div class="ir-item prioritaria">Processos em Disponibilidade</div>
+
+    <div class="ir-group-title integral">Restrição Total</div>
+    <div class="ir-item integral">UC de Proteção Integral</div>
+    <div class="ir-item integral">Áreas Militares</div>
+    <div class="ir-item integral">Sítios Paleontológicos</div>
+    <div class="ir-item integral">Conselho Nuclear</div>
+    <div class="ir-item integral">Reservas Extrativistas</div>
+    <div class="ir-item integral">Países Limítrofes</div>
+
+    <div class="ir-group-title parcial">Restrição Parcial</div>
+    <div class="ir-item parcial">Áreas Urbanas</div>
+    <div class="ir-item parcial">Hidrelétricas</div>
+    <div class="ir-item parcial">Linhas de Transmissão</div>
+    <div class="ir-item parcial">Gasodutos/Oleodutos</div>
+    <div class="ir-item parcial">UC de Uso Sustentável</div>
+    <div class="ir-item parcial">Terras Indígenas</div>
+    <div class="ir-item parcial">Faixa de Fronteira</div>
+    <div class="ir-item parcial">Área de Proteção da Fonte</div>
+    <div class="ir-item parcial">Assentamentos</div>
+    <div class="ir-item parcial">Sítios Arqueológicos</div>
+    <div class="ir-item parcial">Polos Petroquímicos</div>
+    <div class="ir-item parcial">Quilombos</div>
+    <div class="ir-item parcial">Cavernas</div>
+    <div class="ir-item parcial">Reservas Garimpeiras</div>
+    <div class="ir-item parcial">Áreas de Bloqueio</div>
+    <div class="ir-item parcial">Parques Eólicos</div>
+    <div class="ir-item parcial">Conselho Nuclear Parcial</div>
 
   </div>
 </div>
@@ -825,7 +935,7 @@ const SATELLITE_STYLE = {
 const map = new maplibregl.Map({
   container: 'map',
   style: SATELLITE_STYLE,
-  center: [-47.9151, -15.6094],
+  center: [-52.4735, -3.2085], // -3.2085N, -52.4735E
   zoom: 8,
   attributionControl: false,
 });
@@ -883,7 +993,7 @@ let selectedMethod = null;
 
 // Color palette for tipos (assigned dynamically)
 const TIPO_PALETTE = [
-  '#e6194b','#3cb44b','#ffe119','#4363d8','#f58231',
+  '#0022ff','#ff0040','#ffe119','#02b62f','#0e5a00',
   '#911eb4','#42d4f4','#f032e6','#bfef45','#fabed4',
   '#469990','#dcbeff','#9A6324','#fffac8','#800000',
 ];
@@ -1572,8 +1682,8 @@ function mergeCells() {
 
     const parts = [];
     if (clean.size)   parts.push(`${clean.size} livres`);
-    if (parcial.size) parts.push(`${parcial.size} parcial`);
-    if (total.size)   parts.push(`${total.size} total`);
+    if (parcial.size) parts.push(`${parcial.size} restrição parcial`);
+    if (total.size)   parts.push(`${total.size} restrição total`);
     showToast(parts.join(' · '));
 
     const areaLabel = formatHa(calcSelectedAreaHa());
@@ -2064,7 +2174,7 @@ function buildLegendTipos() {
         type: 'fill',
         source: 'dados',
         filter: ['==', ['get', 'tipo'], tipo],
-        paint: { 'fill-color': color, 'fill-opacity': 0.35 }
+        paint: { 'fill-color': color, 'fill-opacity': 0.60 }
       }, 'dados-fill'); // insert below the generic fill (which we can now hide)
     }
 
@@ -2096,6 +2206,15 @@ document.getElementById('legend-header').addEventListener('click', () => {
   const icon = document.getElementById('legend-toggle-icon');
   body.classList.toggle('hidden');
   icon.classList.toggle('collapsed');
+});
+
+// ── Info — Restrições panel ──────────────────────────────────────────────────
+document.getElementById('info-rest-header').addEventListener('click', () => {
+  const body = document.getElementById('info-rest-body');
+  const icon = document.getElementById('info-rest-icon');
+  body.classList.toggle('open');
+  icon.classList.toggle('open');
+  icon.textContent = body.classList.contains('open') ? '▼' : '▶';
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
