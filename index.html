@@ -570,6 +570,18 @@
   <div class="panel-section">
     <div class="section-title">Método de Seleção</div>
     <div class="toggle-row">
+      <span class="toggle-label"><span id="btn-select-label">Selecionar quadrículas</span></span>
+      <label class="toggle">
+        <input type="checkbox" class="method-toggle" id="method-select">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+    <div id="sel-mode">
+      <button class="mode-btn active" id="mode-click">Clique</button>
+      <button class="mode-btn"        id="mode-rect">Retângulo</button>
+      <button class="mode-btn"        id="mode-poly">Polígono</button>
+    </div>
+    <div class="toggle-row">
       <span class="toggle-label">Desenhar polígono</span>
       <label class="toggle">
         <input type="checkbox" class="method-toggle" id="method-draw">
@@ -582,19 +594,6 @@
         <input type="checkbox" class="method-toggle" id="method-upload">
         <span class="toggle-track"></span>
       </label>
-    </div>
-    <div class="toggle-row">
-      <span class="toggle-label"><span id="btn-select-label">Selecionar quadrículas</span></span>
-      <label class="toggle">
-        <input type="checkbox" class="method-toggle" id="method-select">
-        <span class="toggle-track"></span>
-      </label>
-    </div>
-
-    <div id="sel-mode">
-      <button class="mode-btn active" id="mode-click">Clique</button>
-      <button class="mode-btn"        id="mode-rect">Retângulo</button>
-      <button class="mode-btn"        id="mode-poly">Polígono</button>
     </div>
 
     <div class="action-row">
