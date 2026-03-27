@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Simulador de Quadrículas v2</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text x=%2250%25%22 text-anchor=%22middle%22 y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -2058,7 +2059,7 @@ document.getElementById('method-draw').addEventListener('change', (e) => {
   polyVerts = [];
   map.getSource('poly-draw').setData(EMPTY_FC());
   map.getCanvas().style.cursor = 'crosshair';
-  showToast('Clique para adicionar v\u00e9rtices \u00b7 Duplo clique para fechar');
+  showToast('Clique para adicionar vértices - Duplo clique para fechar');
   syncUI();
 });
 
@@ -2277,7 +2278,7 @@ function buildReportHTML() {
   const C = '<\/';  // closing tag prefix — split to fool the HTML parser
   const head = '<!DOCTYPE html><html lang="pt-BR"><head>'
     + '<meta charset="UTF-8">'
-    + '<title>Relat\u00f3rio de Quadr\u00edculas<\/title>'
+    + '<title>Relatório de Quadrículas<\/title>'
     + '<style>'
     + 'body{font-family:Noto Sans,sans-serif;padding:32px;background:#f8f9fa;color:#1a2a3a}'
     + 'h1{font-size:16px;letter-spacing:3px;text-transform:uppercase;margin-bottom:24px;color:#2a6090}'
@@ -2289,16 +2290,16 @@ function buildReportHTML() {
     + 'tr:last-child td{border-bottom:none}'
     + '.meta{font-size:11px;color:#6a8090;margin-bottom:4px}'
     + C+'style>'+C+'head><body>'
-    + '<h1>Relat\u00f3rio de Quadr\u00edculas<\/h1>'
+    + '<h1>Relatório de Quadrículas<\/h1>'
     + '<p class="meta">Gerado em: ' + new Date().toLocaleString('pt-BR') + '<\/p>';
 
   let body = '';
   sections.forEach(function(s) {
     const areaHa = turf.area(s.feature) / 10000;
-    body += '<h2 style="background:' + s.color + '">' + s.title + ' \u2014 ' + formatHa(areaHa) + C+'h2>';
+    body += '<h2 style="background:' + s.color + '">' + s.title + ' — ' + formatHa(areaHa) + C+'h2>';
     extractRings(s.feature).forEach(function(ring) {
-      body += '<h3>' + ring.label + ' (' + ring.coords.length + ' v\u00e9rtices)' + C + 'h3>'
-            + '<table><thead><tr><th>#<\/th><th>Longitude (DMS)<\/th><th>Latitude (DMS)<\/th><\/tr><\/thead><tbody>';
+      body += '<h3>' + ring.label + ' (' + ring.coords.length + ' vértices)' + C + 'h3>'
+            + '<table><thead><tr><th>#<\/th><th>Longitude (GMS)<\/th><th>Latitude (MMS)<\/th><\/tr><\/thead><tbody>';
       ring.coords.forEach(function(c, i) {
         body += '<tr><td>' + (i+1) + '<\/td><td>' + decimalToDMS(c[0], 'lon') + '<\/td><td>' + decimalToDMS(c[1], 'lat') + '<\/td><\/tr>';
       });
