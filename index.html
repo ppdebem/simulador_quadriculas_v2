@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -660,7 +660,11 @@
       <span class="stat-value highlight" id="s-area">0 ha</span>
     </div>
     <div class="stat-row">
-      <span class="stat-label">Área livre</span>
+      <span class="stat-label" style="color:#0aafb5">Área final</span>
+      <span class="stat-value highlight" id="s-area-final">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label" style="color:#1a8855">Área livre</span>
       <span class="stat-value highlight" id="s-area-clean">—</span>
     </div>
     <div class="stat-row">
@@ -716,7 +720,7 @@
     <div class="legend-row">
       <span class="legend-label">
         <span class="legend-swatch" style="background:rgba(0,255,238,0.35);border:1px solid rgba(0,200,190,0.9)"></span>
-        Polígono gerado
+        Polígono final
       </span>
       <label class="toggle">
         <input type="checkbox" id="tog-merged" checked>
@@ -1033,9 +1037,12 @@ let polyVerts    = [];
 let restrictionData = null;
 
 // Last merge results — kept for export
+let lastMergedFinal   = null;
 let lastMergedClean   = null;
 let lastMergedParcial = null;
 let lastMergedTotal   = null;
+let lastCleanCells    = new Set();
+let lastParcialCells  = new Set();
 
 // Polygon picker state
 let pickerPolygons = [];  // individual Polygon features split from a MultiPolygon
@@ -1688,6 +1695,61 @@ function unionGroup(cellIds) {
   }
 }
 
+function combineCellSets(...sets) {
+  const combined = new Set();
+  sets.forEach(set => {
+    if (!set) return;
+    set.forEach(id => combined.add(id));
+  });
+  return combined;
+}
+
+function syncResultState({ mergedFinal, mergedClean, mergedParcial, mergedTotal }) {
+  lastMergedFinal   = mergedFinal;
+  lastMergedClean   = mergedClean;
+  lastMergedParcial = mergedParcial;
+  lastMergedTotal   = mergedTotal;
+
+  map.getSource('merged').setData({
+    type: 'FeatureCollection',
+    features: mergedFinal ? [mergedFinal] : []
+  });
+  map.getSource('restricao-parcial').setData({
+    type: 'FeatureCollection',
+    features: mergedParcial ? [mergedParcial] : []
+  });
+  map.getSource('restricao-total').setData({
+    type: 'FeatureCollection',
+    features: mergedTotal ? [mergedTotal] : []
+  });
+
+  document.getElementById('s-area-final').textContent = mergedFinal
+    ? formatHa(turf.area(mergedFinal) / 10000) : '—';
+  document.getElementById('s-area-clean').textContent = mergedClean
+    ? formatHa(turf.area(mergedClean) / 10000) : '—';
+  document.getElementById('s-parcial').textContent = mergedParcial
+    ? formatHa(turf.area(mergedParcial) / 10000) : '—';
+  document.getElementById('s-total').textContent = mergedTotal
+    ? formatHa(turf.area(mergedTotal) / 10000) : '—';
+
+  const hasResults = mergedFinal || mergedClean || mergedParcial || mergedTotal;
+  document.getElementById('btn-report').disabled  = !hasResults;
+  document.getElementById('btn-geojson').disabled = !hasResults;
+}
+
+function filterCellIdsByPolygon(cellIds, polygonFeature) {
+  const filtered = new Set();
+  for (const cellId of cellIds) {
+    const [li, lati, arcsec] = cellId.split('_').map(Number);
+    const size = arcsec / 3600;
+    const center = turf.point([(li + 0.5) * size, (lati + 0.5) * size]);
+    if (turf.booleanPointInPolygon(center, polygonFeature)) {
+      filtered.add(cellId);
+    }
+  }
+  return filtered;
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Merge
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1700,27 +1762,15 @@ function mergeCells() {
     let clean, parcial, total;
     ({ clean, parcial, total } = classifyCells());
 
+    const finalCells    = combineCellSets(clean, parcial);
+    const mergedFinal   = unionGroup(finalCells);
     const mergedClean   = unionGroup(clean);
     const mergedParcial = unionGroup(parcial);
     const mergedTotal   = unionGroup(total);
 
-    // Store for export
-    lastMergedClean   = mergedClean;
-    lastMergedParcial = mergedParcial;
-    lastMergedTotal   = mergedTotal;
-
-    map.getSource('merged').setData({
-      type: 'FeatureCollection',
-      features: mergedClean ? [mergedClean] : []
-    });
-    map.getSource('restricao-parcial').setData({
-      type: 'FeatureCollection',
-      features: mergedParcial ? [mergedParcial] : []
-    });
-    map.getSource('restricao-total').setData({
-      type: 'FeatureCollection',
-      features: mergedTotal ? [mergedTotal] : []
-    });
+    lastCleanCells   = new Set(clean);
+    lastParcialCells = new Set(parcial);
+    syncResultState({ mergedFinal, mergedClean, mergedParcial, mergedTotal });
 
     // Exit selection mode
     toggleSelectionMode(false);
@@ -1732,19 +1782,6 @@ function mergeCells() {
       map.setFeatureState({ source: 'grid', id: hoveredNumId }, { hover: false });
       hoveredNumId = null;
     }
-
-    // Update restriction stats
-    document.getElementById('s-total').textContent = mergedTotal
-      ? formatHa(turf.area(mergedTotal) / 10000) : '—';
-    document.getElementById('s-parcial').textContent = mergedParcial
-      ? formatHa(turf.area(mergedParcial) / 10000) : '—';
-    document.getElementById('s-area-clean').textContent = mergedClean
-      ? formatHa(turf.area(mergedClean) / 10000) : '—';
-
-    // Enable export buttons if any result exists
-    const hasResults = mergedClean || mergedParcial || mergedTotal;
-    document.getElementById('btn-report').disabled  = !hasResults;
-    document.getElementById('btn-geojson').disabled = !hasResults;
 
     const parts = [];
     if (clean.size)   parts.push(`${clean.size} livres`);
@@ -1758,9 +1795,9 @@ function mergeCells() {
     syncUI();
     document.getElementById('s-area').textContent = areaLabel;
 
-    // If clean result is a MultiPolygon, require the user to pick one
-    if (mergedClean && mergedClean.geometry.type === 'MultiPolygon') {
-      pickerPolygons = mergedClean.geometry.coordinates.map((polyCoords) => ({
+    // If final result is a MultiPolygon, require the user to pick one
+    if (mergedFinal && mergedFinal.geometry.type === 'MultiPolygon') {
+      pickerPolygons = mergedFinal.geometry.coordinates.map((polyCoords) => ({
         type: 'Feature',
         geometry: { type: 'Polygon', coordinates: polyCoords },
         properties: {}
@@ -1993,14 +2030,19 @@ document.getElementById('picker-select').addEventListener('click', () => {
   const chosen = pickerPolygons[pickerIndex];
   closePolyPicker();
 
-  // Replace lastMergedClean with the chosen single polygon
-  lastMergedClean = chosen;
-  map.getSource('merged').setData({ type: 'FeatureCollection', features: [chosen] });
-  document.getElementById('s-area-clean').textContent = formatHa(turf.area(chosen) / 10000);
+  const chosenCleanCells   = filterCellIdsByPolygon(lastCleanCells, chosen);
+  const chosenParcialCells = filterCellIdsByPolygon(lastParcialCells, chosen);
+  const chosenFinalCells   = combineCellSets(chosenCleanCells, chosenParcialCells);
 
-  const hasResults = lastMergedClean || lastMergedParcial || lastMergedTotal;
-  document.getElementById('btn-report').disabled  = !hasResults;
-  document.getElementById('btn-geojson').disabled = !hasResults;
+  lastCleanCells   = chosenCleanCells;
+  lastParcialCells = chosenParcialCells;
+
+  syncResultState({
+    mergedFinal: unionGroup(chosenFinalCells) || chosen,
+    mergedClean: unionGroup(chosenCleanCells),
+    mergedParcial: unionGroup(chosenParcialCells),
+    mergedTotal: lastMergedTotal
+  });
 });
 
 function getMaxAreaHa() {
@@ -2111,10 +2153,13 @@ document.getElementById('btn-clear').addEventListener('click', () => {
   map.getSource('restricao-parcial').setData(EMPTY_FC());
   syncUI();
   document.getElementById('s-area').textContent       = '0 ha';
+  document.getElementById('s-area-final').textContent = '—';
   document.getElementById('s-area-clean').textContent = '—';
   document.getElementById('s-total').textContent      = '—';
   document.getElementById('s-parcial').textContent    = '—';
-  lastMergedClean = lastMergedParcial = lastMergedTotal = null;
+  lastMergedFinal = lastMergedClean = lastMergedParcial = lastMergedTotal = null;
+  lastCleanCells = new Set();
+  lastParcialCells = new Set();
   document.getElementById('btn-report').disabled  = true;
   document.getElementById('btn-geojson').disabled = true;
   document.getElementById('btn-confirm').disabled = false;
@@ -2401,7 +2446,8 @@ function decimalToDMS(value, axis) {
 
 function buildReportHTML() {
   const sections = [
-    { title: 'Área livre',        color: '#0aafb5', feature: lastMergedClean   },
+    { title: 'Polígono final',    color: '#0aafb5', feature: lastMergedFinal   },
+    { title: 'Área livre',        color: '#1a8855', feature: lastMergedClean   },
     { title: 'Restrição parcial', color: '#d07020', feature: lastMergedParcial },
     { title: 'Restrição total',   color: '#c03030', feature: lastMergedTotal   },
   ].filter(s => s.feature);
@@ -2450,7 +2496,8 @@ document.getElementById('btn-report').addEventListener('click', () => {
 
 document.getElementById('btn-geojson').addEventListener('click', () => {
   const features = [
-    lastMergedClean   ? { ...lastMergedClean,   properties: { tipo: 'livre'            } } : null,
+    lastMergedFinal   ? { ...lastMergedFinal,   properties: { tipo: 'poligono_final'    } } : null,
+    lastMergedClean   ? { ...lastMergedClean,   properties: { tipo: 'livre'              } } : null,
     lastMergedParcial ? { ...lastMergedParcial, properties: { tipo: 'restricao_parcial' } } : null,
     lastMergedTotal   ? { ...lastMergedTotal,   properties: { tipo: 'restricao_total'   } } : null,
   ].filter(Boolean);
