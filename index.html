@@ -1971,7 +1971,7 @@ function updatePickerView() {
 
   // Zoom to it
   const bbox = turf.bbox(poly);
-  map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 80, duration: 500 });
+  map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: { top: 260, bottom: 300, left: 520, right: 480 }, duration: 500 });
 
   // Update label
   document.getElementById('poly-picker-label').textContent =
