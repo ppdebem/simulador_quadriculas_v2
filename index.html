@@ -452,6 +452,51 @@
     #modal-yes { background: rgba(200,40,40,0.1); color: #b02020; border-color: rgba(200,40,40,0.4); }
     #modal-yes:hover { background: rgba(200,40,40,0.2); }
 
+    /* ── Polygon picker popup ───────────────────────────────────────────── */
+    #poly-picker {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.97);
+      border: 1px solid rgba(0,0,0,0.14);
+      border-radius: 3px;
+      padding: 14px 18px;
+      z-index: 200;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      font-family: 'Courier New', monospace;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      white-space: nowrap;
+    }
+    #poly-picker.show { display: flex; }
+    #poly-picker-label {
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: #2a4a6a;
+    }
+    .picker-btn {
+      padding: 6px 14px;
+      border-radius: 2px;
+      font-family: inherit;
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: 1px solid rgba(0,0,0,0.18);
+      background: transparent;
+      color: #2a4a6a;
+      transition: background 0.1s;
+    }
+    .picker-btn:hover { background: rgba(40,110,180,0.08); }
+    #picker-select {
+      background: rgba(20,140,80,0.1);
+      color: #1a7040;
+      border-color: rgba(20,140,80,0.4);
+    }
+    #picker-select:hover { background: rgba(20,140,80,0.18); }
+
     /* ── Rectangle selection rubber band ───────────────────────────────── */
     #rect-band {
       position: absolute;
@@ -766,6 +811,13 @@
   </div>
 </div>
 
+<div id="poly-picker">
+  <span id="poly-picker-label">Polígono 1 de 1</span>
+  <button class="picker-btn" id="picker-prev">← Anterior</button>
+  <button class="picker-btn" id="picker-next">Próximo →</button>
+  <button class="picker-btn" id="picker-select">Selecionar este polígono</button>
+</div>
+
 <div id="modal-overlay">
   <div id="modal">
     <div id="modal-msg"></div>
@@ -984,6 +1036,10 @@ let restrictionData = null;
 let lastMergedClean   = null;
 let lastMergedParcial = null;
 let lastMergedTotal   = null;
+
+// Polygon picker state
+let pickerPolygons = [];  // individual Polygon features split from a MultiPolygon
+let pickerIndex    = 0;
 
 // User-uploaded polygon
 let userPolyFeature  = null;
@@ -1633,149 +1689,6 @@ function unionGroup(cellIds) {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Polygon bridging — removes holes by stitching each hole ring to the outer
-// ring with a guaranteed axis-aligned (H or V) seam, found by ray casting.
-// ──────────────────────────────────────────────────────────────────────────────
-
-/**
- * Cast an axis-aligned ray from (px, py) in direction (dx, dy) (one of ±1,0 or 0,±1)
- * against every segment of `ring`. Returns { t, ix, iy, segIdx } for the
- * nearest hit (t > 0), or null if none.
- */
-function castRay(px, py, dx, dy, ring) {
-  let best = null;
-  for (let i = 0; i < ring.length - 1; i++) {
-    const ax = ring[i][0],   ay = ring[i][1];
-    const bx = ring[i+1][0], by = ring[i+1][1];
-    const ex = bx - ax, ey = by - ay;
-    const denom = dx * ey - dy * ex;
-    if (Math.abs(denom) < 1e-12) continue;          // parallel
-    const t = ((ax - px) * ey - (ay - py) * ex) / denom;
-    const s = ((ax - px) * dy - (ay - py) * dx) / denom;
-    if (t < 1e-10 || s < -1e-10 || s > 1 + 1e-10) continue;
-    if (!best || t < best.t) {
-      best = { t, ix: px + t * dx, iy: py + t * dy, segIdx: i };
-    }
-  }
-  return best;
-}
-
-/**
- * Insert point (ix, iy) into ring after index segIdx, return new ring.
- * Skips insertion if the point is already effectively at a vertex.
- */
-function insertPoint(ring, segIdx, ix, iy) {
-  const EPS = 1e-10;
-  const a = ring[segIdx], b = ring[segIdx + 1];
-  if (Math.abs(a[0]-ix) < EPS && Math.abs(a[1]-iy) < EPS) return { ring, idx: segIdx };
-  if (Math.abs(b[0]-ix) < EPS && Math.abs(b[1]-iy) < EPS) return { ring, idx: segIdx + 1 };
-  const newRing = [
-    ...ring.slice(0, segIdx + 1),
-    [ix, iy],
-    ...ring.slice(segIdx + 1)
-  ];
-  return { ring: newRing, idx: segIdx + 1 };
-}
-
-function bridgeRings(rings) {
-  if (rings.length <= 1) return rings;
-
-  const open = r => {
-    const last = r[r.length - 1];
-    return last[0] === r[0][0] && last[1] === r[0][1] ? r.slice(0, -1) : r.slice();
-  };
-
-  // Work with open rings; outer must be closed for ray casting so keep closed copy
-  let outer = open(rings[0]);
-  let outerClosed = [...outer, outer[0]];
-
-  for (let h = 1; h < rings.length; h++) {
-    const hole = open(rings[h]);
-
-    // For each hole vertex try 4 axis-aligned rays; keep the best (shortest) hit.
-    const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
-    let best = null; // { t, ix, iy, outerSegIdx, holeVtxIdx, dx, dy }
-
-    for (let hi = 0; hi < hole.length; hi++) {
-      const [px, py] = hole[hi];
-      for (const [dx, dy] of DIRS) {
-        const hit = castRay(px, py, dx, dy, outerClosed);
-        if (!hit) continue;
-        if (!best || hit.t < best.t) {
-          best = { ...hit, holeVtxIdx: hi };
-        }
-      }
-    }
-
-    if (!best) {
-      // No axis-aligned ray hit — fall back to nearest vertex pair
-      let minD = Infinity, bestOi = 0, bestHi = 0;
-      for (let oi = 0; oi < outer.length; oi++) {
-        for (let hi = 0; hi < hole.length; hi++) {
-          const dx = outer[oi][0] - hole[hi][0];
-          const dy = outer[oi][1] - hole[hi][1];
-          const d = dx*dx + dy*dy;
-          if (d < minD) { minD = d; bestOi = oi; bestHi = hi; }
-        }
-      }
-      const bridgePt = outer[bestOi];
-      const holeRot  = [...hole.slice(bestHi), ...hole.slice(0, bestHi)];
-      outer = [
-        ...outer.slice(0, bestOi + 1), ...holeRot,
-        hole[bestHi], bridgePt, ...outer.slice(bestOi),
-      ];
-      outer.push(outer[0]);
-      outer = open(outer);
-      outerClosed = [...outer, outer[0]];
-      continue;
-    }
-
-    // Insert the ray hit point on the outer ring
-    const { ix, iy, segIdx: si, holeVtxIdx: hi } = best;
-    // Note: castRay used outerClosed; segIdx is index into that closed array
-    const ins = insertPoint(outerClosed, si, ix, iy);
-    outerClosed = ins.ring;
-    const outerBridgeIdx = ins.idx;
-
-    // Rotate hole so bridge vertex is first
-    const holeRot = [...hole.slice(hi), ...hole.slice(0, hi)];
-
-    // Rebuild outer as: everything up to bridge pt → hole (full loop) → back → rest
-    const bridgePt = [ix, iy];
-    const holePivot = hole[hi];
-
-    // outerClosed[outerBridgeIdx] is the bridge point on the outer ring
-    outer = [
-      ...outerClosed.slice(0, outerBridgeIdx + 1),
-      ...holeRot,
-      holePivot,        // return to hole pivot
-      bridgePt,         // return to outer bridge point
-      ...outerClosed.slice(outerBridgeIdx),
-    ];
-
-    // Remove accidental duplicate closing vertex before re-opening
-    outer = open([...outer, outer[0]]);
-    outerClosed = [...outer, outer[0]];
-  }
-
-  outerClosed = [...outer, outer[0]];
-  return [outerClosed];
-}
-
-function bridgeHoles(feature) {
-  if (!feature) return feature;
-  const geom = feature.geometry;
-  if (geom.type === 'Polygon') {
-    return { ...feature, geometry: { ...geom, coordinates: bridgeRings(geom.coordinates) } };
-  }
-  if (geom.type === 'MultiPolygon') {
-    return { ...feature, geometry: { ...geom,
-      coordinates: geom.coordinates.map(poly => bridgeRings(poly)) } };
-  }
-  return feature;
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
 // Merge
 // ──────────────────────────────────────────────────────────────────────────────
 function mergeCells() {
@@ -1787,9 +1700,9 @@ function mergeCells() {
     let clean, parcial, total;
     ({ clean, parcial, total } = classifyCells());
 
-    const mergedClean   = bridgeHoles(unionGroup(clean));
-    const mergedParcial = bridgeHoles(unionGroup(parcial));
-    const mergedTotal   = bridgeHoles(unionGroup(total));
+    const mergedClean   = unionGroup(clean);
+    const mergedParcial = unionGroup(parcial);
+    const mergedTotal   = unionGroup(total);
 
     // Store for export
     lastMergedClean   = mergedClean;
@@ -1844,6 +1757,20 @@ function mergeCells() {
     syncSelectedSource();
     syncUI();
     document.getElementById('s-area').textContent = areaLabel;
+
+    // If clean result is a MultiPolygon, require the user to pick one
+    if (mergedClean && mergedClean.geometry.type === 'MultiPolygon') {
+      pickerPolygons = mergedClean.geometry.coordinates.map((polyCoords) => ({
+        type: 'Feature',
+        geometry: { type: 'Polygon', coordinates: polyCoords },
+        properties: {}
+      }));
+      pickerIndex = 0;
+      showModal(
+        'Somente um pol\u00edgono \u00e9 permitido. Escolha apenas um deles.',
+        openPolyPicker
+      );
+    }
   }, 30);
 }
 
@@ -2017,6 +1944,65 @@ function showAlertModal(msg) {
   showModal(msg, () => {}, { confirmLabel: 'OK', showCancel: false });
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Polygon picker
+// ──────────────────────────────────────────────────────────────────────────────
+function openPolyPicker() {
+  map.dragPan.disable();
+  map.scrollZoom.disable();
+  pickerIndex = 0;
+  updatePickerView();
+  document.getElementById('poly-picker').classList.add('show');
+}
+
+function closePolyPicker() {
+  document.getElementById('poly-picker').classList.remove('show');
+  map.dragPan.enable();
+  map.scrollZoom.enable();
+  pickerPolygons = [];
+}
+
+function updatePickerView() {
+  const poly = pickerPolygons[pickerIndex];
+  const total = pickerPolygons.length;
+
+  // Show just this polygon on the merged source
+  map.getSource('merged').setData({ type: 'FeatureCollection', features: [poly] });
+
+  // Zoom to it
+  const bbox = turf.bbox(poly);
+  map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 80, duration: 500 });
+
+  // Update label
+  document.getElementById('poly-picker-label').textContent =
+    'Pol\u00edgono ' + (pickerIndex + 1) + ' de ' + total +
+    ' \u2014 ' + formatHa(turf.area(poly) / 10000);
+}
+
+document.getElementById('picker-prev').addEventListener('click', () => {
+  pickerIndex = (pickerIndex - 1 + pickerPolygons.length) % pickerPolygons.length;
+  updatePickerView();
+});
+
+document.getElementById('picker-next').addEventListener('click', () => {
+  pickerIndex = (pickerIndex + 1) % pickerPolygons.length;
+  updatePickerView();
+});
+
+document.getElementById('picker-select').addEventListener('click', () => {
+  const chosen = pickerPolygons[pickerIndex];
+  closePolyPicker();
+
+  // Replace lastMergedClean with the chosen single polygon
+  lastMergedClean = chosen;
+  map.getSource('merged').setData({ type: 'FeatureCollection', features: [chosen] });
+  document.getElementById('s-area-clean').textContent = formatHa(turf.area(chosen) / 10000);
+
+  const hasResults = lastMergedClean || lastMergedParcial || lastMergedTotal;
+  document.getElementById('btn-report').disabled  = !hasResults;
+  document.getElementById('btn-geojson').disabled = !hasResults;
+});
+
 function getMaxAreaHa() {
   return selectedRequirement ? Number(selectedRequirement.dataset.maxHa) : null;
 }
@@ -2106,6 +2092,8 @@ document.getElementById('btn-confirm').addEventListener('click', () => {
 });
 
 document.getElementById('btn-clear').addEventListener('click', () => {
+  // Close picker if open
+  if (pickerPolygons.length) closePolyPicker();
   toggleSelectionMode(false);
   drawingUserPoly = false;
   polyVerts = [];
@@ -2434,8 +2422,7 @@ function buildReportHTML() {
     + '.meta{font-size:11px;color:#6a8090;margin-bottom:4px}'
     + C+'style>'+C+'head><body>'
     + '<h1>Relatório de Quadrículas<\/h1>'
-    + '<p class="meta">Gerado em: ' + new Date().toLocaleString('pt-BR') + '<\/p>'
-    + '<p class="meta">Sistema de referência: SIRGAS 2000 (EPSG:4674)<\/p>';
+    + '<p class="meta">Gerado em: ' + new Date().toLocaleString('pt-BR') + '<\/p>';
 
   let body = '';
   sections.forEach(function(s) {
@@ -2467,11 +2454,7 @@ document.getElementById('btn-geojson').addEventListener('click', () => {
     lastMergedTotal   ? { ...lastMergedTotal,   properties: { tipo: 'restricao_total'   } } : null,
   ].filter(Boolean);
 
-  const fc = JSON.stringify({
-    type: 'FeatureCollection',
-    crs: { type: 'name', properties: { name: 'urn:ogc:def:crs:EPSG::4674' } },
-    features
-  }, null, 2);
+  const fc   = JSON.stringify({ type: 'FeatureCollection', features }, null, 2);
   const blob = new Blob([fc], { type: 'application/geo+json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
