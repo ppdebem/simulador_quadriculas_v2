@@ -2422,7 +2422,8 @@ function buildReportHTML() {
     + '.meta{font-size:11px;color:#6a8090;margin-bottom:4px}'
     + C+'style>'+C+'head><body>'
     + '<h1>Relatório de Quadrículas<\/h1>'
-    + '<p class="meta">Gerado em: ' + new Date().toLocaleString('pt-BR') + '<\/p>';
+    + '<p class="meta">Gerado em: ' + new Date().toLocaleString('pt-BR') + '<\/p>'
+    + '<p class="meta">Sistema de referência: SIRGAS 2000 (EPSG:4674)<\/p>';
 
   let body = '';
   sections.forEach(function(s) {
@@ -2454,7 +2455,11 @@ document.getElementById('btn-geojson').addEventListener('click', () => {
     lastMergedTotal   ? { ...lastMergedTotal,   properties: { tipo: 'restricao_total'   } } : null,
   ].filter(Boolean);
 
-  const fc   = JSON.stringify({ type: 'FeatureCollection', features }, null, 2);
+  const fc = JSON.stringify({
+    type: 'FeatureCollection',
+    crs: { type: 'name', properties: { name: 'urn:ogc:def:crs:EPSG::4674' } },
+    features
+  }, null, 2);
   const blob = new Blob([fc], { type: 'application/geo+json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
