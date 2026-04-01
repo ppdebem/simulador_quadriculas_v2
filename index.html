@@ -762,7 +762,7 @@
       <div class="legend-row">
         <span class="legend-label">
           <span class="legend-swatch" style="background:rgba(180,100,255,0.3);border:2px solid rgba(160,80,240,0.9)"></span>
-          Polígono carregado
+          Polígono desenhado
         </span>
         <label class="toggle">
           <input type="checkbox" id="tog-user-poly" checked>
@@ -1154,12 +1154,12 @@ map.on('load', () => {
   });
 
   // User-uploaded polygon
-  map.addLayer({
-    id: 'user-poly-fill',
-    type: 'fill',
-    source: 'user-poly',
-    paint: { 'fill-color': 'rgba(180,100,255,0.15)' }
-  });
+  // map.addLayer({
+  //   id: 'user-poly-fill',
+  //   type: 'fill',
+  //   source: 'user-poly',
+  //   paint: { 'fill-color': 'rgba(180,100,255,0.10)' }
+  // });
   map.addLayer({
     id: 'user-poly-outline',
     type: 'line',
